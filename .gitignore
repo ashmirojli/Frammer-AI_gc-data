@@ -1,0 +1,19 @@
+# Environments
+venv/
+.venv/
+env/
+
+# Databases
+*.db
+*.sqlite3
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# IDEs / macOS
+.vscode/
+.DS_Store
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
