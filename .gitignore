@@ -7,6 +7,11 @@ env/
 *.db
 *.sqlite3
 
+# Data and Secret Files
+Dataset/
+StarSchemaDB/
+.env
+
 # Python Cache
 __pycache__/
 *.pyc
@@ -17,3 +22,7 @@ __pycache__/
 
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
+
+# Generated Outputs (Images & CSVs)
+*.png
+*.csv
