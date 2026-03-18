@@ -27,6 +27,7 @@ if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
 from orchestrator import run_pipeline, stream_pipeline  # noqa: E402
+from multidimension_anomaly import router as anomaly_router, load_all_data as load_anomaly_data  # noqa: E402
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -122,6 +123,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Anomaly / Multidimension router ──────────────────────────────────────────
+app.include_router(anomaly_router)
+
+
+@app.on_event("startup")
+def _startup_load_anomaly():
+    try:
+        load_anomaly_data()
+        logger.info("Anomaly module data loaded successfully.")
+    except Exception as exc:
+        logger.error("Failed to load anomaly data: %s", exc)
 
 
 # ── In-memory chat sessions ─────────────────────────────────────────────────
