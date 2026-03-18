@@ -332,7 +332,7 @@ const ProjectsDashboard = () => {
       <div className="projects-charts-grid" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="projects-chart-card">
           <h4>Publishing Ecosystem Map</h4>
-          <p className="chart-subtitle">Two-layer hierarchy: Platform (inner) -> Channel (outer)</p>
+          <p className="chart-subtitle">Two-layer hierarchy: Platform (inner) = Channel (outer)</p>
           <div style={{ height: 450, position: 'relative' }}>
              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
