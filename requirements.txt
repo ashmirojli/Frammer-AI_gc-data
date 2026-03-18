@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pandas
+matplotlib
+sqlalchemy
+psycopg2-binary
+seaborn
+plotly
+scipy
+kaleido
+python-multipart
+python-dotenv
