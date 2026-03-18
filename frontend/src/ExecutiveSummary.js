@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, PieChart, Pie, Cell, ReferenceArea, ReferenceLine, Label,
@@ -7,7 +7,7 @@ import {
 import { 
   Activity, Share2, Lightbulb, Search, 
   ChevronDown, ExternalLink, HelpCircle, ArrowLeft,
-  Share, Send, User, Bot, Sparkles
+  Share, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -500,57 +500,216 @@ const DistributionPlatformHealthContent = () => (
   </div>
 );
 
-const RecommendationsContent = () => (
-  <div className="scrollable-content recommendations-page">
-    <div className="content-header">
-      <div>
-        <h1>Recommendations</h1>
-        <p className="subtitle">Chat with your AI assistant for personalized content strategy insights.</p>
-      </div>
-      <div className="ai-status-icon">
-        <Sparkles size={20} color="#ff4d6d" />
-      </div>
-    </div>
+const REC_API = 'http://localhost:8000/api/recommend';
 
-    <div className="chat-container">
-      <div className="chat-messages">
-        {/* AI Message 1 */}
-        <div className="message ai">
-          <div className="avatar ai"><Bot size={18} /></div>
-          <div className="bubble">
-            Hello! I'm your Frammer AI assistant. How can I help you analyze your content strategy today?
-          </div>
+const RecommendationsContent = () => {
+  const [inputType, setInputType] = useState(1);
+  const [duration, setDuration] = useState(60);
+  const [platform, setPlatform] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+  const [contextMeta, setContextMeta] = useState({ input_types: [], platforms: [], output_types: [] });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch(`${REC_API}/context`)
+      .then(r => r.json())
+      .then(data => setContextMeta(data))
+      .catch(() => {});
+  }, []);
+
+  const generateRecommendations = async () => {
+    setLoading(true);
+    setRecommendations([]);
+    setError('');
+    try {
+      const res = await fetch(`${REC_API}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputtype_id: inputType,
+          duration_sec: duration * 60,
+          platform_id: platform,
+        }),
+      });
+      if (!res.ok) throw new Error('API Error');
+      const data = await res.json();
+      setRecommendations(data.recommendations || []);
+    } catch {
+      setError('Failed to connect to backend. Is the Python server running?');
+    }
+    setLoading(false);
+  };
+
+  const publishAction = async (rec, btnRef) => {
+    if (btnRef) {
+      btnRef.textContent = 'Learning... 🧠';
+      btnRef.classList.add('learning');
+      btnRef.disabled = true;
+    }
+    try {
+      await fetch(`${REC_API}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputtype_id: inputType,
+          duration_sec: duration * 60,
+          platform_id: platform,
+          action: rec.output_type_id,
+          reward: 5.0,
+          probability: rec.probability,
+        }),
+      });
+      await generateRecommendations();
+    } catch {
+      if (btnRef) {
+        btnRef.textContent = 'Publish! 🚀';
+        btnRef.classList.remove('learning');
+        btnRef.disabled = false;
+      }
+    }
+  };
+
+  return (
+    <div className="scrollable-content recommendations-page">
+      <div className="content-header">
+        <div>
+          <h1>Recommendation Simulator</h1>
+          <p className="subtitle">Real-Time Telemetry & Personalization — VW-Bandit</p>
         </div>
-
-        {/* User Message */}
-        <div className="message user">
-          <div className="bubble">
-            Can you give me recommendations based on my current content mix?
-          </div>
-          <div className="avatar user"><User size={18} /></div>
-        </div>
-
-        {/* AI Message 2 */}
-        <div className="message ai">
-          <div className="avatar ai"><Bot size={18} /></div>
-          <div className="bubble">
-            Based on your Executive Summary, your output is currently concentrated in Full Packages (30%). I recommend diversifying into Chapters or Key Moments to boost cross-platform engagement. Would you like me to generate a plan for expanding into Key Moments?
-          </div>
+        <div className="ai-status-icon">
+          <Sparkles size={20} color="#ff4d6d" />
         </div>
       </div>
 
-      <div className="chat-input-wrapper">
-        <div className="chat-input-box">
-          <input type="text" placeholder="Ask for recommendations, insights, or analysis..." />
-          <button className="send-btn">
-            <Send size={18} />
+      <div className="rec-simulator">
+        {/* Left: Controls */}
+        <section className="rec-controls">
+          <h2 className="rec-section-title">1. Input Your Video</h2>
+
+          <div className="rec-form-group">
+            <label className="rec-label">Input Type</label>
+            <select
+              className="rec-select"
+              value={inputType}
+              onChange={e => setInputType(+e.target.value)}
+            >
+              {contextMeta.input_types.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+              {contextMeta.input_types.length === 0 && (
+                <>
+                  <option value={1}>Webinar</option>
+                  <option value={2}>Podcast</option>
+                  <option value={3}>Interview</option>
+                  <option value={4}>Roundtable</option>
+                  <option value={5}>Presentation</option>
+                  <option value={6}>News Bulletin</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <div className="rec-form-group">
+            <label className="rec-label">
+              Raw Duration (Minutes): <span className="rec-dur-val">{duration}m</span>
+            </label>
+            <input
+              type="range"
+              className="rec-range"
+              min="1"
+              max="180"
+              value={duration}
+              onChange={e => setDuration(+e.target.value)}
+            />
+          </div>
+
+          <div className="rec-form-group">
+            <label className="rec-label">Target Platform</label>
+            <select
+              className="rec-select"
+              value={platform}
+              onChange={e => setPlatform(+e.target.value)}
+            >
+              {contextMeta.platforms.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+              {contextMeta.platforms.length === 0 && (
+                <>
+                  <option value={1}>YouTube</option>
+                  <option value={2}>LinkedIn</option>
+                  <option value={3}>Twitter</option>
+                  <option value={4}>TikTok</option>
+                  <option value={5}>Instagram</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <button
+            className="rec-generate-btn"
+            onClick={generateRecommendations}
+            disabled={loading}
+          >
+            {loading ? 'Generating...' : 'Generate Strategy'}
           </button>
-        </div>
-        <p className="chat-disclaimer">AI RECOMMENDATIONS ARE GENERATED BASED ON YOUR DASHBOARD METRICS</p>
+        </section>
+
+        {/* Right: Results */}
+        <section className="rec-results">
+          <div className="rec-results-header">
+            <h2 className="rec-section-title">2. Choose Your Output Strategy</h2>
+            {loading && <div className="rec-spinner" />}
+          </div>
+
+          <p className="rec-instruction">
+            The Global Model recommends the following.{' '}
+            <strong>Click Publish to train the Bandit!</strong>
+          </p>
+
+          <div className="rec-recs-list">
+            {recommendations.length === 0 && !loading && !error && (
+              <div className="rec-empty-state">Waiting for input...</div>
+            )}
+            {loading && recommendations.length === 0 && (
+              <div className="rec-empty-state">Calculating AI strategy...</div>
+            )}
+            {error && (
+              <div className="rec-empty-state rec-error">{error}</div>
+            )}
+            {recommendations.map((rec, i) => {
+              const pct = (rec.probability * 100).toFixed(1);
+              const isTop = i === 0;
+              return (
+                <div
+                  key={rec.output_type_id}
+                  className={`rec-sim-card ${isTop ? 'top-choice' : ''}`}
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                >
+                  <div className="rec-sim-info">
+                    <div className={`rec-sim-name ${isTop ? 'highlight' : ''}`}>
+                      {isTop && '✨ '}{rec.output_type_name}
+                    </div>
+                    <div className="rec-prob-bar-container">
+                      <div className="rec-prob-bar" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="rec-prob-text">Win Probability: {pct}%</div>
+                  </div>
+                  <button
+                    className="rec-publish-btn"
+                    onClick={e => publishAction(rec, e.currentTarget)}
+                  >
+                    Publish! 🚀
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- MAIN COMPONENT ---
 

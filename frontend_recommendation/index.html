@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frammer AI - Target Strategy Simulator</title>
+    <link rel="stylesheet" href="./style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-anim">
+        <div class="blob shape1"></div>
+        <div class="blob shape2"></div>
+        <div class="blob shape3"></div>
+    </div>
+
+    <div class="app-container">
+        <header class="glass-header">
+            <div class="logo">Frammer AI</div>
+            <h1>Content Simulator (Phase 2 Bandit)</h1>
+            <p class="subtitle">Demonstrating Real-Time Telemetry & Personalization</p>
+        </header>
+
+        <main class="dashboard">
+            <!-- Left Side: Inputs -->
+            <section class="controls glass-panel">
+                <h2>1. Input Your Video</h2>
+                
+                <div class="form-group">
+                    <label for="inputType">Input Type</label>
+                    <select id="inputType">
+                        <option value="1">Webinar</option>
+                        <option value="2">Podcast</option>
+                        <option value="3">Interview</option>
+                        <option value="4">Roundtable</option>
+                        <option value="5">Presentation</option>
+                        <option value="6">News Bulletin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration">Raw Duration (Minutes): <span id="durVal">60</span>m</label>
+                    <input type="range" id="duration" min="1" max="180" value="60">
+                </div>
+
+                <div class="form-group">
+                    <label for="platform">Target Platform</label>
+                    <select id="platform">
+                        <option value="1">YouTube</option>
+                        <option value="2">LinkedIn</option>
+                        <option value="3">Twitter</option>
+                        <option value="4">TikTok</option>
+                        <option value="5">Instagram</option>
+                    </select>
+                </div>
+                
+                <button id="getRecsBtn" class="btn primary glowing-btn">Generate AI Strategy</button>
+            </section>
+
+            <!-- Right Side: Recommendations -->
+            <section class="results glass-panel">
+                <div class="results-header">
+                    <h2>2. Choose Your Output Strategy</h2>
+                    <span id="loading" class="spinner hidden"></span>
+                </div>
+                
+                <p class="instruction-text">The Phase 1 Global Model recommends the following. <strong>Click Publish to train the Phase 2 Bandit!</strong></p>
+                
+                <div id="recommendationsList" class="recs-list">
+                    <!-- Cards will be injected here via JS -->
+                    <div class="empty-state">
+                        Waiting for input...
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>

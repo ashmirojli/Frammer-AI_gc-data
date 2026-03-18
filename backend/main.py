@@ -28,6 +28,7 @@ if BACKEND_DIR not in sys.path:
 
 from orchestrator import run_pipeline, stream_pipeline  # noqa: E402
 from multidimension_anomaly import router as anomaly_router, load_all_data as load_anomaly_data  # noqa: E402
+from recommendation import router as recommend_router, init_recommendation_service  # noqa: E402
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -128,14 +129,23 @@ app.add_middleware(
 # ── Anomaly / Multidimension router ──────────────────────────────────────────
 app.include_router(anomaly_router)
 
+# ── Recommendation router ────────────────────────────────────────────────────
+app.include_router(recommend_router)
+
 
 @app.on_event("startup")
-def _startup_load_anomaly():
+def _startup_load_modules():
     try:
         load_anomaly_data()
         logger.info("Anomaly module data loaded successfully.")
     except Exception as exc:
         logger.error("Failed to load anomaly data: %s", exc)
+
+    try:
+        init_recommendation_service()
+        logger.info("Recommendation service initialised successfully.")
+    except Exception as exc:
+        logger.error("Failed to init recommendation service: %s", exc)
 
 
 # ── In-memory chat sessions ─────────────────────────────────────────────────
