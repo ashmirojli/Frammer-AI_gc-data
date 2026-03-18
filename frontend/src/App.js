@@ -6,6 +6,7 @@ import ExecutiveSummary from './ExecutiveSummary';
 import VideoExplorer from './VideoExplorer';
 import ProjectsDashboard from './ProjectsDashboard';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import ChatbotWidget from './ChatbotWidget';
 
 // Placeholder for other pages
 const Page = ({ title, icon: Icon }) => (
@@ -70,14 +71,17 @@ const Home = () => {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<AnalyticsOverview />} />
-        <Route path="/projects" element={<ProjectsDashboard />} />
-        <Route path="/analytics" element={<AnalyticsDashboard />} />
-        <Route path="/team" element={<ExecutiveSummary />} />
-        <Route path="/settings" element={<VideoExplorer />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<AnalyticsOverview />} />
+          <Route path="/projects" element={<ProjectsDashboard />} />
+          <Route path="/analytics" element={<AnalyticsDashboard />} />
+          <Route path="/team" element={<ExecutiveSummary />} />
+          <Route path="/settings" element={<VideoExplorer />} />
+        </Routes>
+        <ChatbotWidget />
+      </>
     </Router>
   );
 }

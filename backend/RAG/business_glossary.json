@@ -1,0 +1,20 @@
+[
+    {
+        "id": "bj_001",
+        "term": "KPI",
+        "definition": "Key Performance Indicator used to measure analytics performance",
+        "semantic_text": "kpi metric business analytics performance measurement"
+    },
+    {
+        "id": "bj_002",
+        "term": "Publish Rate",
+        "definition": "Percentage of uploaded videos successfully published",
+        "semantic_text": "publish rate publishing ratio uploaded videos published"
+    },
+    {
+        "id": "bj_003",
+        "term": "Drop-off",
+        "definition": "Difference between videos created and published",
+        "semantic_text": "drop off publishing funnel difference created published"
+    }
+]

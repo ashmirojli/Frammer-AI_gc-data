@@ -1,0 +1,333 @@
+[
+  {
+    "id": "metric_001",
+    "name": "Uploaded Count",
+    "aliases": [
+      "uploads",
+      "uploaded videos",
+      "total uploads",
+      "videos uploaded"
+    ],
+    "description": "Total number of videos uploaded to the Frammer platform.",
+    "semantic_text": "Uploaded Count metric representing the total number of videos uploaded to the Frammer platform. Also called uploads, uploaded videos, total uploads, total videos uploaded, how many videos uploaded, upload volume, or overall upload count.",
+    "formula": "SUM(uploaded_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_input_type", "fact_language", "fact_output_type"],
+    "column": "uploaded_count",
+    "unit": "count",
+    "category": "usage"
+  },
+  {
+    "id": "metric_002",
+    "name": "Created Count",
+    "aliases": [
+      "processed videos",
+      "created videos",
+      "total processed",
+      "videos processed",
+      "processing count"
+    ],
+    "description": "Total number of videos processed/created by Frammer (i.e., AI has generated outputs for them).",
+    "semantic_text": "Created Count metric representing the total number of videos processed or created by Frammer AI. Also called processed videos, created videos, total processed, videos processed, processing count, AI processed count, generated video count.",
+    "formula": "SUM(created_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_input_type", "fact_language", "fact_output_type"],
+    "column": "created_count",
+    "unit": "count",
+    "category": "usage"
+  },
+  {
+    "id": "metric_003",
+    "name": "Published Count",
+    "aliases": [
+      "published videos",
+      "total published",
+      "videos published",
+      "publish count"
+    ],
+    "description": "Total number of videos that have been published to an external platform.",
+    "semantic_text": "Published Count metric representing the total number of videos published to an external platform. Also called published videos, total published, videos published, publish count, how many videos published, overall published volume.",
+    "formula": "SUM(published_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_channel_publishing", "fact_input_type", "fact_language", "fact_output_type"],
+    "column": "published_count",
+    "unit": "count",
+    "category": "publishing"
+  },
+  {
+    "id": "metric_004",
+    "name": "Uploaded Duration",
+    "aliases": [
+      "upload hours",
+      "uploaded hours",
+      "total uploaded duration",
+      "hours uploaded",
+      "duration uploaded"
+    ],
+    "description": "Total duration (in seconds) of all uploaded videos.",
+    "semantic_text": "Uploaded Duration metric representing the total duration in seconds of all uploaded videos. Also called upload hours, uploaded hours, total uploaded duration, hours uploaded, duration uploaded, total hours of uploaded content.",
+    "formula": "SUM(uploaded_duration_hh_mm_ss)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_input_type", "fact_language", "fact_output_type"],
+    "column": "uploaded_duration_hh_mm_ss",
+    "unit": "seconds",
+    "category": "usage"
+  },
+  {
+    "id": "metric_005",
+    "name": "Created Duration",
+    "aliases": [
+      "processed hours",
+      "created hours",
+      "processing duration",
+      "hours processed",
+      "duration processed"
+    ],
+    "description": "Total duration (in seconds) of all processed/created videos.",
+    "semantic_text": "Created Duration metric representing the total duration in seconds of all processed or created videos. Also called processed hours, created hours, processing duration, hours processed, duration processed, total processing time.",
+    "formula": "SUM(created_duration_hh_mm_ss)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_input_type", "fact_language"],
+    "column": "created_duration_hh_mm_ss",
+    "unit": "seconds",
+    "category": "usage"
+  },
+  {
+    "id": "metric_006",
+    "name": "Published Duration",
+    "aliases": [
+      "published hours",
+      "hours published",
+      "duration published",
+      "total published duration"
+    ],
+    "description": "Total duration (in seconds) of all published videos.",
+    "semantic_text": "Published Duration metric representing the total duration in seconds of all published videos. Also called published hours, hours published, duration published, total published duration, total hours of published content.",
+    "formula": "SUM(published_duration_hh_mm_ss)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_channel_publishing", "fact_language"],
+    "column": "published_duration_hh_mm_ss",
+    "unit": "seconds",
+    "category": "publishing"
+  },
+  {
+    "id": "metric_007",
+    "name": "Publish Rate",
+    "aliases": [
+      "publish conversion",
+      "conversion rate",
+      "publish percentage",
+      "published ratio",
+      "publish %",
+      "publish conversion rate"
+    ],
+    "description": "Percentage of processed/created videos that were published. Measures publishing funnel efficiency.",
+    "semantic_text": "Publish Rate metric representing the percentage of processed videos that were published, measuring publishing funnel efficiency. Also called publish conversion, conversion rate, publish percentage, published ratio, publish %, what percent of videos get published, publishing efficiency, how much content gets published.",
+    "formula": "ROUND(100.0 * SUM(published_count) / NULLIF(SUM(created_count), 0), 2)",
+    "aggregation": "DERIVED",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_monthly", "fact_input_type", "fact_language", "fact_output_type"],
+    "column": "derived",
+    "unit": "percentage",
+    "category": "publishing"
+  },
+  {
+    "id": "metric_008",
+    "name": "Publish Drop-off",
+    "aliases": [
+      "drop off",
+      "unpublished count",
+      "not published",
+      "processing gap",
+      "processed but not published"
+    ],
+    "description": "Number of videos that were processed but never published. Indicates content left unused.",
+    "semantic_text": "Publish Drop-off metric representing the number of videos that were processed but never published, indicating unused content. Also called drop off, unpublished count, not published, processing gap, processed but not published, wasted processing, unused content count, videos that never got published.",
+    "formula": "SUM(created_count) - SUM(published_count)",
+    "aggregation": "DERIVED",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["fact_user_channel", "fact_input_type"],
+    "column": "derived",
+    "unit": "count",
+    "category": "publishing"
+  },
+  {
+    "id": "metric_009",
+    "name": "Monthly Uploaded Count",
+    "aliases": [
+      "uploads per month",
+      "monthly uploads",
+      "videos uploaded by month",
+      "monthly upload trend"
+    ],
+    "description": "Total number of videos uploaded in a given month.",
+    "semantic_text": "Monthly Uploaded Count metric representing the total number of videos uploaded in a given month for trend analysis. Also called uploads per month, monthly uploads, videos uploaded by month, monthly upload trend, monthly upload volume, upload count over time.",
+    "formula": "SUM(total_uploaded)",
+    "aggregation": "SUM",
+    "primary_table": "fact_monthly",
+    "related_tables": ["dim_month"],
+    "column": "total_uploaded",
+    "unit": "count",
+    "category": "trends"
+  },
+  {
+    "id": "metric_010",
+    "name": "Monthly Created Count",
+    "aliases": [
+      "processed per month",
+      "monthly processed",
+      "videos processed by month",
+      "monthly processing trend"
+    ],
+    "description": "Total number of videos processed/created in a given month.",
+    "semantic_text": "Monthly Created Count metric representing the total number of videos processed or created in a given month. Also called processed per month, monthly processed, videos processed by month, monthly processing trend, monthly processing volume, created count over time.",
+    "formula": "SUM(total_created)",
+    "aggregation": "SUM",
+    "primary_table": "fact_monthly",
+    "related_tables": ["dim_month"],
+    "column": "total_created",
+    "unit": "count",
+    "category": "trends"
+  },
+  {
+    "id": "metric_011",
+    "name": "Monthly Published Count",
+    "aliases": [
+      "published per month",
+      "monthly published",
+      "videos published by month",
+      "monthly publishing trend"
+    ],
+    "description": "Total number of videos published in a given month.",
+    "semantic_text": "Monthly Published Count metric representing the total number of videos published in a given month. Also called published per month, monthly published, videos published by month, monthly publishing trend, monthly publish volume, published count over time.",
+    "formula": "SUM(total_published)",
+    "aggregation": "SUM",
+    "primary_table": "fact_monthly",
+    "related_tables": ["dim_month"],
+    "column": "total_published",
+    "unit": "count",
+    "category": "trends"
+  },
+  {
+    "id": "metric_012",
+    "name": "Channel Publishing Count",
+    "aliases": [
+      "published by channel",
+      "channel publish count",
+      "channel wise published",
+      "per channel published"
+    ],
+    "description": "Number of videos published per channel, optionally broken down by platform.",
+    "semantic_text": "Channel Publishing Count metric representing the number of videos published per channel, optionally broken down by platform. Also called published by channel, channel publish count, channel wise published, per channel published, how many videos per channel, channel level publishing volume.",
+    "formula": "SUM(published_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_channel_publishing",
+    "related_tables": ["dim_channel", "dim_platform"],
+    "column": "published_count",
+    "unit": "count",
+    "category": "channel"
+  },
+  {
+    "id": "metric_013",
+    "name": "Channel Publishing Duration",
+    "aliases": [
+      "published hours by channel",
+      "channel publish duration",
+      "channel wise published hours"
+    ],
+    "description": "Total published duration (seconds) per channel, optionally broken down by platform.",
+    "semantic_text": "Channel Publishing Duration metric representing the total published duration in seconds per channel, optionally broken down by platform. Also called published hours by channel, channel publish duration, channel wise published hours, publishing time per channel.",
+    "formula": "SUM(published_duration)",
+    "aggregation": "SUM",
+    "primary_table": "fact_channel_publishing",
+    "related_tables": ["dim_channel", "dim_platform"],
+    "column": "published_duration",
+    "unit": "seconds",
+    "category": "channel"
+  },
+  {
+    "id": "metric_014",
+    "name": "Top Users by Upload",
+    "aliases": [
+      "most active users",
+      "top uploaders",
+      "users by volume",
+      "high volume users",
+      "user ranking"
+    ],
+    "description": "Ranking of users by their total uploaded video count.",
+    "semantic_text": "Top Users by Upload metric representing a ranking of users by their total uploaded video count. Also called most active users, top uploaders, users by volume, high volume users, user ranking, who uploads the most, most prolific uploaders, top contributors by upload.",
+    "formula": "SUM(uploaded_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_user_summary",
+    "related_tables": ["dim_user"],
+    "column": "uploaded_count",
+    "unit": "count",
+    "category": "user"
+  },
+  {
+    "id": "metric_015",
+    "name": "Input Type Distribution",
+    "aliases": [
+      "content type split",
+      "input type breakdown",
+      "type of content",
+      "content category split",
+      "input categories"
+    ],
+    "description": "Breakdown of uploaded/processed/published counts and durations by input content type (e.g. interview, news bulletin, special reports, speech, debate, press conference, discussion-show, sports show, podcast, drama, in-brief, Unknown).",
+    "semantic_text": "Input Type Distribution metric representing the breakdown of video counts and durations by input content type such as interview, news bulletin, special reports, speech, debate, press conference, discussion-show, sports show, podcast, drama, or in-brief. Also called content type split, input type breakdown, content category split, type of content breakdown, which content type is uploaded most.",
+    "formula": "SUM(uploaded_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_input_type",
+    "related_tables": ["dim_input_type"],
+    "column": "uploaded_count",
+    "unit": "count",
+    "category": "content"
+  },
+  {
+    "id": "metric_016",
+    "name": "Output Type Distribution",
+    "aliases": [
+      "output type split",
+      "output format breakdown",
+      "format distribution",
+      "reels vs shorts vs chapters"
+    ],
+    "description": "Breakdown of uploaded/processed/published counts and durations by output type (e.g. Full package, Key moments, My Key moments, Chapters, Summary).",
+    "semantic_text": "Output Type Distribution metric representing the breakdown of video counts and durations by output format type such as Full package, Key moments, My Key moments, Chapters, or Summary. Also called output type split, output format breakdown, format distribution, reels vs shorts vs chapters, which output format is most popular.",
+    "formula": "SUM(uploaded_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_output_type",
+    "related_tables": ["dim_output_type"],
+    "column": "uploaded_count",
+    "unit": "count",
+    "category": "content"
+  },
+  {
+    "id": "metric_017",
+    "name": "Language Distribution",
+    "aliases": [
+      "by language",
+      "language split",
+      "language breakdown",
+      "usage by language",
+      "language wise"
+    ],
+    "description": "Breakdown of uploaded/processed/published counts and durations by language.",
+    "semantic_text": "Language Distribution metric representing the breakdown of video counts and durations by language such as English, Hindi, Spanish, Arabic, Marathi, or mixed. Also called by language, language split, language breakdown, usage by language, language wise, which language is most uploaded, content distribution by language.",
+    "formula": "SUM(uploaded_count)",
+    "aggregation": "SUM",
+    "primary_table": "fact_language",
+    "related_tables": ["dim_language"],
+    "column": "uploaded_count",
+    "unit": "count",
+    "category": "language"
+  }
+]

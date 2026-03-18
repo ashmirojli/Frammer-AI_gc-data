@@ -1,0 +1,770 @@
+[
+  {
+    "id": "schema_001",
+    "table": "dim_channel",
+    "type": "dimension",
+    "description": "Channel or workspace dimension. Each row is a unique Frammer workspace identified by a single letter name.",
+    "semantic_text": "dim_channel table stores channel or workspace information. Columns: channel_id (primary key), channel_name (label, e.g. A B C D). Each channel has a single letter name. Use this table to filter or group metrics by channel or workspace. Join to fact_user_channel and fact_channel_publishing using channel_id.",
+    "columns": [
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique channel identifier"
+      },
+      {
+        "name": "channel_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Single letter channel name e.g. A B C"
+      }
+    ],
+    "row_count": 18,
+    "joins": [
+      {
+        "join_table": "fact_user_channel",
+        "join_key": "channel_id"
+      },
+      {
+        "join_table": "fact_channel_publishing",
+        "join_key": "channel_id"
+      }
+    ],
+    "notes": "18 unique channels named A through R. Use channel_name for display and channel_id for joins."
+  },
+  {
+    "id": "schema_002",
+    "table": "dim_user",
+    "type": "dimension",
+    "description": "User dimension. Each row is a Frammer platform user who uploads or processes videos.",
+    "semantic_text": "dim_user table stores user information. Columns: user_id (primary key), user_name (label, anonymized e.g. User_1 User_2). Use this table to filter or group metrics by user or uploader. Join to fact_user_channel, fact_user_summary, and fact_video using user_id.",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique user identifier"
+      },
+      {
+        "name": "user_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Anonymized user name e.g. User_1 User_2"
+      }
+    ],
+    "row_count": 45,
+    "joins": [
+      {
+        "join_table": "fact_user_channel",
+        "join_key": "user_id"
+      },
+      {
+        "join_table": "fact_user_summary",
+        "join_key": "user_id"
+      },
+      {
+        "join_table": "fact_video",
+        "join_key": "user_id"
+      }
+    ],
+    "notes": "45 users total. Includes real users, QA accounts, and system accounts. User names are anonymized."
+  },
+  {
+    "id": "schema_003",
+    "table": "dim_input_type",
+    "type": "dimension",
+    "description": "Input content type dimension. Describes the category of source video content uploaded to Frammer before processing.",
+    "semantic_text": "dim_input_type table stores input content type information. Columns: inputtype_id (primary key), input_type_name (label, e.g. interview, news bulletin, special reports, speech, debate, press conference, discussion-show, sports show, podcast, drama, in-brief). Use this table to filter or group metrics by content type or input category. Join to fact_input_type and fact_video using inputtype_id.",
+    "columns": [
+      {
+        "name": "inputtype_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique input type identifier"
+      },
+      {
+        "name": "input_type_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Content type name e.g. interview speech news bulletin debate podcast"
+      }
+    ],
+    "row_count": 12,
+    "joins": [
+      {
+        "join_table": "fact_input_type",
+        "join_key": "inputtype_id"
+      },
+      {
+        "join_table": "fact_video",
+        "join_key": "inputtype_id"
+      }
+    ],
+    "notes": "12 input types. fact_video.inputtype_id was derived during ETL by mapping the raw type text column to inputtype_id via dim_input_type lookup."
+  },
+  {
+    "id": "schema_004",
+    "table": "dim_output_type",
+    "type": "dimension",
+    "description": "Output format type dimension. Describes the AI-generated output format produced by Frammer.",
+    "semantic_text": "dim_output_type table stores output format type information. Columns: outputtype_id (primary key), output_type_name (label, e.g. Full package, Key moments, My Key moments, Chapters, Summary). Use this table to filter or group metrics by output type or video format. Join to fact_output_type using outputtype_id.",
+    "columns": [
+      {
+        "name": "outputtype_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique output type identifier"
+      },
+      {
+        "name": "output_type_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Output format name e.g. Full package Key moments Chapters Summary"
+      }
+    ],
+    "row_count": 5,
+    "joins": [
+      {
+        "join_table": "fact_output_type",
+        "join_key": "outputtype_id"
+      }
+    ],
+    "notes": "5 output types. Only joins to fact_output_type. There is no direct output type FK in fact_video."
+  },
+  {
+    "id": "schema_005",
+    "table": "dim_language",
+    "type": "dimension",
+    "description": "Language dimension. Describes the language of the video content.",
+    "semantic_text": "dim_language table stores language information. Columns: language_id (primary key), language_name (label, e.g. en, hi, mix, es, ar, mr — English, Hindi, Mixed, Spanish, Arabic, Marathi). Use this table to filter or group metrics by language or content language. Join to fact_language using language_id.",
+    "columns": [
+      {
+        "name": "language_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique language identifier"
+      },
+      {
+        "name": "language_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Language code e.g. en hi mix es ar mr"
+      }
+    ],
+    "row_count": 6,
+    "joins": [
+      {
+        "join_table": "fact_language",
+        "join_key": "language_id"
+      }
+    ],
+    "notes": "6 languages: en=English, hi=Hindi, mix=Mixed, es=Spanish, ar=Arabic, mr=Marathi."
+  },
+  {
+    "id": "schema_006",
+    "table": "dim_platform",
+    "type": "dimension",
+    "description": "Publishing platform dimension. Describes the external social media or video platform where content was published.",
+    "semantic_text": "dim_platform table stores publishing platform information. Columns: platform_id (primary key), platform_name (label, e.g. Facebook, Instagram, Linkedin, Reels, Shorts, X, Youtube, Threads, YouTube, Facebook-Reels). Use this table to filter or group publishing metrics by platform or social media destination. Join to fact_channel_publishing and fact_video using platform_id.",
+    "columns": [
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique platform identifier"
+      },
+      {
+        "name": "platform_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Platform name e.g. Facebook Instagram YouTube Reels Shorts X Threads"
+      }
+    ],
+    "row_count": 10,
+    "joins": [
+      {
+        "join_table": "fact_channel_publishing",
+        "join_key": "platform_id"
+      },
+      {
+        "join_table": "fact_video",
+        "join_key": "platform_id"
+      }
+    ],
+    "notes": "10 platforms. Youtube (ID=7) and YouTube (ID=9) are duplicates — use WHERE platform_name IN ('YouTube', 'Youtube') to capture both entries. fact_video.platform_id is sparsely populated and unreliable. Always use fact_channel_publishing for platform analysis."
+  },
+  {
+    "id": "schema_007",
+    "table": "dim_team",
+    "type": "dimension",
+    "description": "Team dimension. Describes the editorial or production team responsible for the video.",
+    "semantic_text": "dim_team table stores team information. Columns: team_id (primary key), team_name (label, nearly all values are Unknown). Use this table to filter or group metrics by team name. Warning: nearly all values are Unknown due to missing data quality. Join to fact_video using team_id.",
+    "columns": [
+      {
+        "name": "team_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique team identifier"
+      },
+      {
+        "name": "team_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Team name. Nearly all values are Unknown."
+      }
+    ],
+    "row_count": 2,
+    "joins": [
+      {
+        "join_table": "fact_video",
+        "join_key": "team_id"
+      }
+    ],
+    "notes": "Only 2 rows and nearly 100% Unknown in fact_video. Always warn users that team data is a data quality issue when this dimension is queried."
+  },
+  {
+    "id": "schema_008",
+    "table": "dim_month",
+    "type": "dimension",
+    "description": "Month time dimension for trend and time-series analysis. Covers April 2025 to February 2026.",
+    "semantic_text": "dim_month table stores calendar month information for trend analysis covering April 2025 to February 2026. Columns: month_id (primary key), month_name (display label e.g. Apr 2025), month_num (1-12 for sort order), year (2025 or 2026), quarter (1-4). Use this table to filter or group metrics by month, quarter, or year. Always use ORDER BY year ASC, month_num ASC for chronological order. Join to fact_monthly using month_id.",
+    "columns": [
+      {
+        "name": "month_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique month identifier"
+      },
+      {
+        "name": "month_name",
+        "type": "TEXT",
+        "role": "label",
+        "notes": "Display name e.g. Apr, 2025"
+      },
+      {
+        "name": "month_num",
+        "type": "INTEGER",
+        "role": "attribute",
+        "notes": "Month number 1 to 12 for sorting"
+      },
+      {
+        "name": "year",
+        "type": "INTEGER",
+        "role": "attribute",
+        "notes": "Year 2025 or 2026"
+      },
+      {
+        "name": "quarter",
+        "type": "INTEGER",
+        "role": "attribute",
+        "notes": "Quarter 1 to 4"
+      }
+    ],
+    "row_count": 12,
+    "joins": [
+      {
+        "join_table": "fact_monthly",
+        "join_key": "month_id"
+      }
+    ],
+    "notes": "Always use ORDER BY dm.year ASC, dm.month_num ASC for correct chronological ordering. Use month_name for display labels."
+  },
+  {
+    "id": "schema_009",
+    "table": "fact_video",
+    "type": "fact",
+    "description": "Granular video-level fact table. Each row represents one video processed by Frammer. Contains headline source publish status type and foreign keys to user team and platform.",
+    "semantic_text": "fact_video table stores individual video records. Columns: video_id (primary key), headline (video title), source (source URL or name), published (1=published, 0=not published), published_url (URL where published, often NULL), type (raw input type text), user_id (FK to dim_user), team_id (FK to dim_team, mostly Unknown), platform_id (FK to dim_platform, mostly NULL), inputtype_id (FK to dim_input_type). Use this table for video level queries, filtering by publish status, searching headlines, or counting videos per user. Do not use for aggregated counts — use pre-aggregated fact tables instead.",
+    "columns": [
+      {
+        "name": "headline",
+        "type": "TEXT",
+        "role": "attribute",
+        "notes": "Video headline or title"
+      },
+      {
+        "name": "source",
+        "type": "TEXT",
+        "role": "attribute",
+        "notes": "Source name or URL of the video"
+      },
+      {
+        "name": "published",
+        "type": "INTEGER",
+        "role": "flag",
+        "notes": "1 = published, 0 = not published"
+      },
+      {
+        "name": "type",
+        "type": "TEXT",
+        "role": "attribute",
+        "notes": "Raw input type text before ETL mapping"
+      },
+      {
+        "name": "video_id",
+        "type": "INTEGER",
+        "role": "primary_key",
+        "notes": "Unique video identifier"
+      },
+      {
+        "name": "published_url",
+        "type": "TEXT",
+        "role": "attribute",
+        "notes": "URL where video was published. Often NULL or empty."
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_user"
+      },
+      {
+        "name": "team_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_team. Nearly all Unknown."
+      },
+      {
+        "name": "platform_id",
+        "type": "REAL",
+        "role": "foreign_key",
+        "notes": "FK to dim_platform. Type is REAL due to ETL casting issue — treat as INTEGER. Sparsely populated, mostly NULL."
+      },
+      {
+        "name": "inputtype_id",
+        "type": "REAL",
+        "role": "foreign_key",
+        "notes": "FK to dim_input_type. Type is REAL due to ETL casting issue — treat as INTEGER. Derived during ETL from type column."
+      }
+    ],
+    "row_count": 14919,
+    "joins": [
+      {
+        "join_table": "dim_user",
+        "join_key": "user_id"
+      },
+      {
+        "join_table": "dim_team",
+        "join_key": "team_id"
+      },
+      {
+        "join_table": "dim_platform",
+        "join_key": "platform_id"
+      },
+      {
+        "join_table": "dim_input_type",
+        "join_key": "inputtype_id"
+      }
+    ],
+    "notes": "Use for video level queries only. For aggregated counts and durations use the pre-aggregated fact tables. platform_id is mostly NULL — do not use for platform analysis. team_id is mostly Unknown. Note: platform_id and inputtype_id are stored as REAL instead of INTEGER due to ETL casting — functionally equivalent for joins."
+  },
+  {
+    "id": "schema_010",
+    "table": "fact_user_channel",
+    "type": "fact",
+    "description": "Aggregated fact table of usage metrics per user per channel combination. Best table for user by channel breakdown queries.",
+    "semantic_text": "fact_user_channel table stores aggregated metrics per user per channel combination. Columns: uploaded_count, created_count, published_count, uploaded_duration_hh_mm_ss (seconds), created_duration_hh_mm_ss (seconds), published_duration_hh_mm_ss (seconds), user_id (FK to dim_user), channel_id (FK to dim_channel). Use this table for channel wise user analysis, user channel breakdown, per workspace per user metrics, uploads by user and channel, channel level performance per user.",
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Number of videos uploaded by this user in this channel"
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Number of videos processed by this user in this channel"
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Number of videos published by this user in this channel"
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds"
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds"
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds"
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_user"
+      },
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_channel"
+      }
+    ],
+    "row_count": 237,
+    "joins": [
+      {
+        "join_table": "dim_user",
+        "join_key": "user_id"
+      },
+      {
+        "join_table": "dim_channel",
+        "join_key": "channel_id"
+      }
+    ],
+    "notes": "237 rows — one per user-channel combination. Duration columns stored in seconds. Divide by 3600 for hours. Use SUM when aggregating across users or channels."
+  },
+  {
+    "id": "schema_011",
+    "table": "fact_user_summary",
+    "type": "fact",
+    "description": "Aggregated fact table of total usage metrics per user across all channels. Best table for overall user level queries.",
+    "semantic_text": "fact_user_summary table stores total metrics per user across all channels. Columns: uploaded_count, created_count, published_count, uploaded_duration_hh_mm_ss (seconds), created_duration_hh_mm_ss (seconds), published_duration_hh_mm_ss (seconds), user_id (FK to dim_user). Use this table for user level totals, top users by uploads or publishes, overall platform usage, platform-wide KPI calculations like total uploaded total published and overall publish rate.",
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos uploaded by this user across all channels"
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos processed by this user across all channels"
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos published by this user across all channels"
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds"
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds"
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds"
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_user"
+      }
+    ],
+    "row_count": 46,
+    "joins": [
+      {
+        "join_table": "dim_user",
+        "join_key": "user_id"
+      }
+    ],
+    "notes": "46 rows — one per user. Best table for platform-wide KPIs like total uploaded, total published, overall publish rate. Duration in seconds — divide by 3600 for hours."
+  },
+  {
+    "id": "schema_012",
+    "table": "fact_monthly",
+    "type": "fact",
+    "description": "Monthly aggregated fact table. Each row contains total uploaded created and published counts and durations for one calendar month.",
+    "semantic_text": "fact_monthly table stores monthly totals for uploaded created and published video counts and durations. Columns: total_uploaded, total_created, total_published, total_uploaded_duration (seconds), total_created_duration (seconds), total_published_duration (seconds), month_id (FK to dim_month). Use this table for monthly trends, time series analysis, monthly comparisons, quarterly rollups. Always JOIN with dim_month for month_name, year, month_num, quarter columns.",
+    "columns": [
+      {
+        "name": "total_uploaded",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos uploaded in this month"
+      },
+      {
+        "name": "total_created",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos processed in this month"
+      },
+      {
+        "name": "total_published",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos published in this month"
+      },
+      {
+        "name": "total_uploaded_duration",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds for this month. Stored in seconds — divide by 3600 for hours."
+      },
+      {
+        "name": "total_created_duration",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds for this month. Stored in seconds — divide by 3600 for hours."
+      },
+      {
+        "name": "total_published_duration",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds for this month. Stored in seconds — divide by 3600 for hours."
+      },
+      {
+        "name": "month_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_month"
+      }
+    ],
+    "row_count": 12,
+    "joins": [
+      {
+        "join_table": "dim_month",
+        "join_key": "month_id"
+      }
+    ],
+    "notes": "12 rows — one per month from Apr 2025 to Feb 2026. Always JOIN with dim_month and ORDER BY dm.year ASC, dm.month_num ASC for correct chronological order."
+  },
+  {
+    "id": "schema_013",
+    "table": "fact_channel_publishing",
+    "type": "fact",
+    "description": "Channel by platform publishing fact table. Each row contains published count and duration for one channel and platform combination.",
+    "semantic_text": "fact_channel_publishing table stores published video counts and durations per channel per platform. Columns: published_count, published_duration (seconds), channel_id (FK to dim_channel), platform_id (FK to dim_platform). Use this table for platform analysis, channel platform breakdown, which platform a channel publishes to, published hours by platform, published count by social media. This is the most reliable table for platform analysis — do not use fact_video.platform_id.",
+    "columns": [
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Number of videos published for this channel-platform combination"
+      },
+      {
+        "name": "published_duration",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds for this channel-platform combination"
+      },
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_channel"
+      },
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_platform"
+      }
+    ],
+    "row_count": 145,
+    "joins": [
+      {
+        "join_table": "dim_channel",
+        "join_key": "channel_id"
+      },
+      {
+        "join_table": "dim_platform",
+        "join_key": "platform_id"
+      }
+    ],
+    "notes": "145 rows — one per channel-platform pair. This is the most reliable table for platform analysis. Do not use fact_video.platform_id for platform queries as it is sparsely populated."
+  },
+  {
+    "id": "schema_014",
+    "table": "fact_input_type",
+    "type": "fact",
+    "description": "Input type aggregated fact table. Each row contains uploaded created and published counts and durations for one input content type.",
+    "semantic_text": "fact_input_type table stores aggregated metrics per input content type. Columns: uploaded_count, created_count, published_count, uploaded_duration_hh_mm_ss (seconds), created_duration_hh_mm_ss (seconds), published_duration_hh_mm_ss (seconds), inputtype_id (FK to dim_input_type). Use this table for input type breakdown, content category analysis, publish funnel by content type such as interview speech news bulletin debate podcast drama.",
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos uploaded for this input type"
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos processed for this input type"
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos published for this input type"
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds"
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds"
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds"
+      },
+      {
+        "name": "inputtype_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_input_type"
+      }
+    ],
+    "row_count": 12,
+    "joins": [
+      {
+        "join_table": "dim_input_type",
+        "join_key": "inputtype_id"
+      }
+    ],
+    "notes": "12 rows — one per input type. Duration in seconds — divide by 3600 for hours. Best table for input type level aggregated queries."
+  },
+  {
+    "id": "schema_015",
+    "table": "fact_language",
+    "type": "fact",
+    "description": "Language aggregated fact table. Each row contains uploaded created and published counts and durations for one language.",
+    "semantic_text": "fact_language table stores aggregated metrics per language. Columns: uploaded_count, created_count, published_count, uploaded_duration_hh_mm_ss (seconds), created_duration_hh_mm_ss (seconds), published_duration_hh_mm_ss (seconds), language_id (FK to dim_language). Use this table for language breakdown, language wise upload or publish counts, and language publish rate analysis for languages like English Hindi Spanish Arabic Marathi mixed.",
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos uploaded for this language"
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos processed for this language"
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos published for this language"
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds"
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds"
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds"
+      },
+      {
+        "name": "language_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_language"
+      }
+    ],
+    "row_count": 6,
+    "joins": [
+      {
+        "join_table": "dim_language",
+        "join_key": "language_id"
+      }
+    ],
+    "notes": "6 rows — one per language. Duration in seconds — divide by 3600 for hours."
+  },
+  {
+    "id": "schema_016",
+    "table": "fact_output_type",
+    "type": "fact",
+    "description": "Output type aggregated fact table. Each row contains uploaded created and published counts and durations for one output format type.",
+    "semantic_text": "fact_output_type table stores aggregated metrics per output format type. Columns: uploaded_count, created_count, published_count, uploaded_duration_hh_mm_ss (seconds), created_duration_hh_mm_ss (seconds), published_duration_hh_mm_ss (seconds), outputtype_id (FK to dim_output_type). Use this table for output type breakdown, format distribution, and publish rate by output format such as Full package Key moments My Key moments Chapters Summary.",
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos uploaded for this output type"
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos processed for this output type"
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total videos published for this output type"
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total uploaded duration in seconds"
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total created duration in seconds"
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "role": "measure",
+        "notes": "Total published duration in seconds"
+      },
+      {
+        "name": "outputtype_id",
+        "type": "INTEGER",
+        "role": "foreign_key",
+        "notes": "FK to dim_output_type"
+      }
+    ],
+    "row_count": 5,
+    "joins": [
+      {
+        "join_table": "dim_output_type",
+        "join_key": "outputtype_id"
+      }
+    ],
+    "notes": "5 rows — one per output type. Duration in seconds — divide by 3600 for hours."
+  }
+]

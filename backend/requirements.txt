@@ -1,0 +1,36 @@
+# Requirements for backend/
+
+# ChromaDB — vector store for knowledge base collections (RAG/)
+chromadb
+
+# sentence-transformers — embedding model: BAAI/bge-small-en-v1.5 (used by ChromaDB)
+sentence-transformers
+
+# Google Gemini SDK — LLM calls (legacy, used by executor)
+google-genai
+
+# LangChain — agent framework for ReAct agents, tool calling, and chains
+langchain
+langchain-core
+langchain-community
+langchain-google-genai
+langchain-groq
+langchain-openai
+
+# LangGraph — state-graph orchestration in orchestrator.py
+langgraph
+
+# sqlglot — AST-based SQL parsing in sql_validator
+sqlglot
+
+# python-dotenv — environment variable loading
+python-dotenv
+
+# pandas / numpy — ETL scripts (scripts/etl_to_sqlite.py)
+pandas
+xgboost
+scikit-learn
+joblib
+fastapi
+uvicorn
+vowpalwabbit

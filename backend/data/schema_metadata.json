@@ -1,0 +1,462 @@
+{
+  "dim_channel": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "channel_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_user": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "user_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_input_type": {
+    "columns": [
+      {
+        "name": "inputtype_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "input_type_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_output_type": {
+    "columns": [
+      {
+        "name": "outputtype_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "output_type_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_language": {
+    "columns": [
+      {
+        "name": "language_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "language_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_platform": {
+    "columns": [
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "platform_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_team": {
+    "columns": [
+      {
+        "name": "team_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "team_name",
+        "type": "TEXT",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "dim_month": {
+    "columns": [
+      {
+        "name": "month_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "month_name",
+        "type": "TEXT",
+        "pk": false
+      },
+      {
+        "name": "month_num",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "year",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "quarter",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_video": {
+    "columns": [
+      {
+        "name": "headline",
+        "type": "TEXT",
+        "pk": false
+      },
+      {
+        "name": "source",
+        "type": "TEXT",
+        "pk": false
+      },
+      {
+        "name": "published",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "type",
+        "type": "TEXT",
+        "pk": false
+      },
+      {
+        "name": "video_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_url",
+        "type": "TEXT",
+        "pk": false
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "team_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "platform_id",
+        "type": "REAL",
+        "pk": false
+      },
+      {
+        "name": "inputtype_id",
+        "type": "REAL",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_user_channel": {
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_user_summary": {
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_monthly": {
+    "columns": [
+      {
+        "name": "total_uploaded",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "total_created",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "total_published",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "total_uploaded_duration",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "total_created_duration",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "total_published_duration",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "month_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_channel_publishing": {
+    "columns": [
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "channel_id",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_input_type": {
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "inputtype_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_language": {
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "language_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  "fact_output_type": {
+    "columns": [
+      {
+        "name": "uploaded_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_count",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "uploaded_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "created_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "published_duration_hh_mm_ss",
+        "type": "INTEGER",
+        "pk": false
+      },
+      {
+        "name": "outputtype_id",
+        "type": "INTEGER",
+        "pk": false
+      }
+    ],
+    "foreign_keys": []
+  }
+}

@@ -1,0 +1,35 @@
+# Frontend Dependencies
+# Note: This is a Node.js/React project. The actual dependencies are managed by package.json.
+# To install all dependencies, simply run `npm install` inside the frontend/ directory.
+
+# Core React
+react@18.3.1
+react-dom@18.3.1
+
+# Build Tool
+vite@6.3.5
+
+# UI Components & Frameworks
+@radix-ui/react-accordion
+@radix-ui/react-dropdown-menu
+@radix-ui/react-popover
+@radix-ui/react-select
+@radix-ui/react-switch
+@radix-ui/react-tabs
+@radix-ui/react-tooltip
+clsx
+tailwind-merge
+
+# Icons
+lucide-react
+
+# Charts & Data Visualization
+recharts
+
+# Styling & CSS
+tailwindcss@^4.1.0
+@tailwindcss/vite
+
+# Animations
+motion
+tw-animate-css

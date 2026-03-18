@@ -1,0 +1,337 @@
+[
+  {
+    "id": "dim_001",
+    "name": "Channel",
+    "table": "dim_channel",
+    "pk_column": "channel_id",
+    "label_column": "channel_name",
+    "aliases": [
+      "workspace",
+      "channel name",
+      "channels",
+      "workspaces"
+    ],
+    "description": "Represents a Frammer workspace or channel. Each channel is identified by a single letter name. Used to segment usage and publishing metrics by workspace.",
+    "semantic_text": "Channel dimension representing a Frammer workspace or channel identified by a letter name such as A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R. Also called workspace or workspaces. Use to filter or group metrics by channel.",
+    "example_values": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R"
+    ],
+    "joins_to": [
+      "fact_user_channel",
+      "fact_channel_publishing"
+    ],
+    "join_key": "channel_id",
+    "row_count": 18,
+    "notes": "18 unique channels named A through R (excluding some letters). Use channel_name for display and channel_id for joins.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "created_count",
+      "published_count",
+      "uploaded_duration_hh_mm_ss",
+      "created_duration_hh_mm_ss",
+      "published_duration_hh_mm_ss",
+      "published_count"
+    ]
+  },
+  {
+    "id": "dim_002",
+    "name": "User",
+    "table": "dim_user",
+    "pk_column": "user_id",
+    "label_column": "user_name",
+    "aliases": [
+      "uploader",
+      "user name",
+      "users",
+      "uploaded by",
+      "team member"
+    ],
+    "description": "Represents an individual Frammer platform user who uploads or processes videos. Includes real users, QA accounts, and system accounts.",
+    "semantic_text": "User dimension representing an individual Frammer platform user who uploads or processes videos. Also called uploader, uploaded by, or team member. Use to filter or group metrics by user.",
+    "example_values": [
+      "User_1",
+      "User_2",
+      "User_3"
+    ],
+    "joins_to": [
+      "fact_user_channel",
+      "fact_user_summary",
+      "fact_video"
+    ],
+    "join_key": "user_id",
+    "row_count": 45,
+    "notes": "45 users total. Some are QA or system accounts. User names are anonymized.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "created_count",
+      "published_count",
+      "uploaded_duration_hh_mm_ss",
+      "created_duration_hh_mm_ss",
+      "published_duration_hh_mm_ss"
+    ]
+  },
+  {
+    "id": "dim_003",
+    "name": "Input Type",
+    "table": "dim_input_type",
+    "pk_column": "inputtype_id",
+    "label_column": "input_type_name",
+    "aliases": [
+      "content type",
+      "content category",
+      "input category",
+      "type of content",
+      "source type"
+    ],
+    "description": "The category of the source/input video content uploaded to Frammer before processing.",
+    "semantic_text": "Input Type dimension representing the category of source video content such as interview, news bulletin, special reports, speech, debate, press conference, discussion-show, sports show, podcast, drama, or in-brief. Also called content type, content category, input category, or type of content. Use to filter or group metrics by input content type.",
+    "example_values": [
+      "interview",
+      "news bulletin",
+      "special reports",
+      "speech",
+      "debate",
+      "press conference",
+      "discussion-show",
+      "sports show",
+      "podcast",
+      "drama",
+      "in-brief",
+      "Unknown"
+    ],
+    "joins_to": [
+      "fact_input_type",
+      "fact_video"
+    ],
+    "join_key": "inputtype_id",
+    "row_count": 12,
+    "notes": "12 input types. fact_video has inputtype_id derived during ETL. Use fact_input_type for aggregated queries.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "created_count",
+      "published_count",
+      "uploaded_duration_hh_mm_ss",
+      "created_duration_hh_mm_ss",
+      "published_duration_hh_mm_ss"
+    ]
+  },
+  {
+    "id": "dim_004",
+    "name": "Output Type",
+    "table": "dim_output_type",
+    "pk_column": "outputtype_id",
+    "label_column": "output_type_name",
+    "aliases": [
+      "output format",
+      "video format",
+      "output category",
+      "format type"
+    ],
+    "description": "The type of AI-generated output content produced by Frammer.",
+    "semantic_text": "Output Type dimension representing the format of AI-generated output content such as Full package, Key moments, My Key moments, Chapters, or Summary. Also called output format, video format, or output category. Use to filter or group metrics by output format type.",
+    "example_values": [
+      "Full package",
+      "Key moments",
+      "My Key moments",
+      "Chapters",
+      "Summary"
+    ],
+    "joins_to": [
+      "fact_output_type"
+    ],
+    "join_key": "outputtype_id",
+    "row_count": 5,
+    "notes": "5 output types. Only joins to fact_output_type \u2014 no direct FK in fact_video.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "created_count",
+      "published_count",
+      "uploaded_duration_hh_mm_ss",
+      "created_duration_hh_mm_ss",
+      "published_duration_hh_mm_ss"
+    ]
+  },
+  {
+    "id": "dim_005",
+    "name": "Language",
+    "table": "dim_language",
+    "pk_column": "language_id",
+    "label_column": "language_name",
+    "aliases": [
+      "lang",
+      "languages",
+      "video language",
+      "content language"
+    ],
+    "description": "The language of the video content. Used to analyze usage patterns across different language markets.",
+    "semantic_text": "Language dimension representing the language of video content such as English (en), Hindi (hi), Mixed (mix), Spanish (es), Arabic (ar), or Marathi (mr). Also called lang, video language, or content language. Use to filter or group metrics by language.",
+    "example_values": [
+      "en",
+      "hi",
+      "mix",
+      "es",
+      "ar",
+      "mr"
+    ],
+    "joins_to": [
+      "fact_language"
+    ],
+    "join_key": "language_id",
+    "row_count": 6,
+    "notes": "6 languages: en=English, hi=Hindi, mix=Mixed, es=Spanish, ar=Arabic, mr=Marathi.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "created_count",
+      "published_count",
+      "uploaded_duration_hh_mm_ss",
+      "created_duration_hh_mm_ss",
+      "published_duration_hh_mm_ss"
+    ]
+  },
+  {
+    "id": "dim_006",
+    "name": "Platform",
+    "table": "dim_platform",
+    "pk_column": "platform_id",
+    "label_column": "platform_name",
+    "aliases": [
+      "publish platform",
+      "social platform",
+      "destination platform",
+      "publishing destination",
+      "social media"
+    ],
+    "description": "The external platform where a video was published.",
+    "semantic_text": "Platform dimension representing the external social media or video platform where content was published such as Facebook, Instagram, Linkedin, Reels, Shorts, X, Youtube, Threads, YouTube, or Facebook-Reels. Also called publish platform, social platform, or publishing destination. Use to filter or group publishing metrics by platform.",
+    "example_values": [
+      "Facebook",
+      "Instagram",
+      "Linkedin",
+      "Reels",
+      "Shorts",
+      "X",
+      "Youtube",
+      "Threads",
+      "YouTube",
+      "Facebook-Reels"
+    ],
+    "joins_to": [
+      "fact_channel_publishing",
+      "fact_video"
+    ],
+    "join_key": "platform_id",
+    "row_count": 10,
+    "notes": "10 platforms. Note: Youtube (ID=7) and YouTube (ID=9) are duplicates \u2014 treat as same platform. fact_video.platform_id is sparsely populated. Use fact_channel_publishing for reliable platform analysis.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "published_count",
+      "published_duration"
+    ]
+  },
+  {
+    "id": "dim_007",
+    "name": "Team",
+    "table": "dim_team",
+    "pk_column": "team_id",
+    "label_column": "team_name",
+    "aliases": [
+      "team name",
+      "editorial team",
+      "production team"
+    ],
+    "description": "The editorial or production team responsible for the video. Currently has very limited data \u2014 nearly all values are Unknown.",
+    "semantic_text": "Team dimension representing the editorial or production team responsible for a video. Also called team name, editorial team, or production team. Warning: nearly all values are Unknown due to missing data.",
+    "example_values": [
+      "Unknown"
+    ],
+    "joins_to": [
+      "fact_video"
+    ],
+    "join_key": "team_id",
+    "row_count": 2,
+    "notes": "Only 2 rows and nearly 100% Unknown in fact_video. This is a data quality issue \u2014 always warn users when team dimension is queried.",
+    "dimension_type": "categorical",
+    "default_sort": "DESC",
+    "supported_metrics": [
+      "uploaded_count",
+      "published_count"
+    ]
+  },
+  {
+    "id": "dim_008",
+    "name": "Month",
+    "table": "dim_month",
+    "pk_column": "month_id",
+    "label_column": "month_name",
+    "aliases": [
+      "time period",
+      "month",
+      "date",
+      "monthly",
+      "time",
+      "period",
+      "year",
+      "quarter",
+      "trend"
+    ],
+    "description": "The calendar month dimension for time-series and trend analysis. Covers Apr 2025 to Feb 2026.",
+    "semantic_text": "Month dimension representing calendar months for time-series and trend analysis covering April 2025 to February 2026. Also called time period, date, monthly, year, quarter, or trend. Use to filter or group metrics by month, quarter, or year.",
+    "example_values": [
+      "Apr, 2025",
+      "May, 2025",
+      "Jun, 2025",
+      "Jul, 2025",
+      "Aug, 2025",
+      "Sep, 2025",
+      "Oct, 2025",
+      "Nov, 2025",
+      "Dec, 2025",
+      "Jan, 2026",
+      "Feb, 2026"
+    ],
+    "joins_to": [
+      "fact_monthly"
+    ],
+    "join_key": "month_id",
+    "row_count": 12,
+    "notes": "12 months from Apr 2025 to Feb 2026. Has synthetic columns: month_num (1-12), year (2025/2026), quarter (1-4). Use month_num + year for ORDER BY. Use month_name for display labels.",
+    "dimension_type": "time",
+    "default_sort": "ASC",
+    "supported_metrics": [
+      "total_uploaded",
+      "total_created",
+      "total_published",
+      "total_uploaded_duration",
+      "total_created_duration",
+      "total_published_duration"
+    ]
+  }
+]
