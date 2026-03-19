@@ -31,6 +31,7 @@ from multidimension_anomaly import router as anomaly_router, load_all_data as lo
 from recommendation import router as recommend_router, init_recommendation_service  # noqa: E402
 from tab4_kpis import router as tab4_router, load_tab4_data  # noqa: E402
 from tab5_explorer import router as tab5_router, load_tab5_data  # noqa: E402
+from tab2_analytics import router as tab2_router, load_tab2_data  # noqa: E402
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -140,6 +141,9 @@ app.include_router(tab4_router)
 # ── Tab 5 Video Explorer router ──────────────────────────────────────────────
 app.include_router(tab5_router)
 
+# ── Tab 2 Analytics router ───────────────────────────────────────────────────
+app.include_router(tab2_router)
+
 
 @app.on_event("startup")
 def _startup_load_modules():
@@ -166,6 +170,12 @@ def _startup_load_modules():
         logger.info("Tab 5 Explorer data loaded successfully.")
     except Exception as exc:
         logger.error("Failed to load Tab 5 Explorer data: %s", exc)
+
+    try:
+        load_tab2_data()
+        logger.info("Tab 2 Analytics data loaded successfully.")
+    except Exception as exc:
+        logger.error("Failed to load Tab 2 Analytics data: %s", exc)
 
 
 # ── In-memory chat sessions ─────────────────────────────────────────────────
