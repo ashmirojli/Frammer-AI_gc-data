@@ -1,39 +1,26 @@
 """
 orchestrator.py
 ---------------
-Parallel Multi-Agent LangGraph orchestrator.
+Parallel Multi-Agent LangGraph orchestrator — extended with KPI RAG path.
 
 Architecture:
   Intent Agent
        ↓
-  Table Agent
+  ┌────────────────────────────────────────┐
+  │  route_after_intent                    │
+  │  kpi_info  → kpi_rag → END            │  ← NEW
+  │  hybrid    → kpi_rag → existing SQL    │  ← NEW
+  │  sql       → table_agent → ...        │  (existing)
+  │  unsafe    → end_short_circuit → END  │  (existing)
+  └────────────────────────────────────────┘
+       ↓ (sql path, unchanged)
+  Table Agent → Planner → SQL Gen A/B/C (parallel)
        ↓
-  Query Planner
+  Unit Tester → Self Critic / SQL Validator / Cost Estimator (parallel)
        ↓
-  ┌─────────────────────────┐
-  │ SQL Gen A  (direct)     │
-  │ SQL Gen B  (reasoning)  │  ← parallel
-  │ SQL Gen C  (example)    │
-  └─────────────────────────┘
+  Decision Aggregator → Executor
        ↓
-  Unit Tester (pick best)
-       ↓
-  ┌─────────────────────────┐
-  │ Self Critic             │
-  │ SQL Validator           │  ← parallel
-  │ Cost Estimator          │
-  └─────────────────────────┘
-       ↓
-  Decision Aggregator
-       ↓
-  Executor
-       ↓
-  ┌─────────────────────────┐
-  │ Formatter               │  ← parallel
-  │ Insight Generator       │
-  └─────────────────────────┘
-       ↓
-  Final Output → END
+  Formatter + Insight Generator (parallel) → Final Output → END
 """
 
 import os
@@ -41,13 +28,15 @@ import sys
 import time
 import hashlib
 import re
+import json
 import operator
 from typing import TypedDict, Annotated
 from langchain_community.callbacks.manager import get_openai_callback
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 
 # ── Ensure backend/ is on sys.path ───────────────────────────────────────────
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))  # backend/
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
@@ -65,7 +54,7 @@ from agents.formatter_agent.agent        import format_result
 from agents.executor_agent.agent         import execute_sql
 
 # ── RAG Retriever ────────────────────────────────────────────────────────────
-from RAG.retriever import retrieve_all_context
+from RAG.retriever import retrieve_all_context, retrieve_kpi_knowledge, format_kpi_context_for_prompt
 
 # ── Memory ───────────────────────────────────────────────────────────────────
 from memory.memory_layer import get_checkpointer, save_successful_query
@@ -75,22 +64,22 @@ from langgraph.graph import StateGraph, END
 
 load_dotenv(find_dotenv())
 
-MAX_SQL_RETRIES = 2
+MAX_SQL_RETRIES  = 2
 MAX_EXEC_RETRIES = 2
+
+# ── LLM for KPI RAG answer generation ────────────────────────────────────────
+_rag_llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.2, max_tokens=1024)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PIPELINE STATE (with reducers for parallel fan-in)
+#  PIPELINE STATE
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _merge_candidates(left: list, right: list) -> list:
-    """Reducer: merge SQL candidate lists from parallel generators."""
     return left + right
 
 def _merge_dicts(left: dict, right: dict) -> dict:
-    """Reducer: merge dicts from parallel verification/result nodes."""
-    merged = {**left, **right}
-    return merged
+    return {**left, **right}
 
 class PipelineState(TypedDict):
     # input
@@ -113,7 +102,7 @@ class PipelineState(TypedDict):
     # parallel verification
     verification_results: Annotated[dict, _merge_dicts]
 
-    # unit tester output
+    # unit tester / cost / insight
     ut_result:            Annotated[dict, _merge_dicts]
     cost_result:          Annotated[dict, _merge_dicts]
     insight_result:       Annotated[dict, _merge_dicts]
@@ -126,6 +115,9 @@ class PipelineState(TypedDict):
     # rag context
     retrieved_context:    Annotated[dict, _merge_dicts]
 
+    # NEW: KPI RAG result
+    kpi_rag_result:       Annotated[dict, _merge_dicts]
+
     # pipeline metadata
     pipeline_error:       str | None
     short_circuit:        bool
@@ -134,11 +126,10 @@ class PipelineState(TypedDict):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PIPELINE NODES
+#  PIPELINE NODES (existing, unchanged)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def node_retriever(state: PipelineState) -> PipelineState:
-    """Node 0: ChromaDB retrieval."""
     print(f"\n[Orchestrator] ── Node 0: Retriever (ChromaDB)")
     t = time.time()
     try:
@@ -151,7 +142,6 @@ def node_retriever(state: PipelineState) -> PipelineState:
     except Exception as e:
         print(f"  ⚠ Retriever failed: {e}")
         context = {"metrics": [], "dimensions": [], "few_shots": [], "schema": [], "jargon": []}
-
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         **state,
@@ -161,7 +151,6 @@ def node_retriever(state: PipelineState) -> PipelineState:
 
 
 def node_intent(state: PipelineState) -> PipelineState:
-    """Node 1: Intent Classification."""
     print(f"\n[Orchestrator] ── Node 1: Intent Agent (ReAct)")
     t = time.time()
     intent_result, _ = classify_and_link(
@@ -187,8 +176,118 @@ def node_intent(state: PipelineState) -> PipelineState:
     }
 
 
+# ── NEW: KPI RAG Node ─────────────────────────────────────────────────────────
+
+def node_kpi_rag(state: PipelineState) -> PipelineState:
+    """
+    KPI RAG Node — handles kpi_info and hybrid intents.
+
+    Steps:
+      1. Retrieve relevant KPI docs from kpi_knowledge ChromaDB collection
+      2. Format retrieved context into a structured prompt
+      3. Call LLM to generate a natural language answer grounded in KPI docs
+      4. Store result in kpi_rag_result
+
+    For hybrid intents, this node runs FIRST and the answer is later combined
+    with SQL data in _build_final_result.
+    """
+    print(f"\n[Orchestrator] ── Node KPI RAG: KPI Knowledge Retrieval + Answer")
+    t = time.time()
+
+    query = state["user_question"]
+    intent = state.get("intent_result", {}).get("intent", "kpi_info")
+
+    # Step 1: Retrieve from kpi_knowledge collection
+    try:
+        kpi_results = retrieve_kpi_knowledge(query, top_k=5)
+        print(f"  Retrieved {len(kpi_results)} KPI knowledge docs")
+    except Exception as e:
+        print(f"  ⚠ KPI retrieval failed: {e}")
+        kpi_results = []
+
+    if not kpi_results:
+        kpi_rag_result = {
+            "answer": "I couldn't find specific KPI definitions for that query. Please try rephrasing or ask about a specific KPI name.",
+            "sources": [],
+            "retrieved_count": 0,
+        }
+        latency_ms = round((time.time() - t) * 1000, 2)
+        return {
+            **state,
+            "kpi_rag_result": kpi_rag_result,
+            "node_latencies": {**state.get("node_latencies", {}), "kpi_rag": latency_ms}
+        }
+
+    # Step 2: Format retrieved context
+    kpi_context_str = format_kpi_context_for_prompt(kpi_results)
+
+    # Step 3: Generate LLM answer grounded in retrieved KPI docs
+    system_prompt = """\
+You are a KPI Expert for Frammer AI's analytics platform.
+Given the user's question and the relevant KPI definitions retrieved from the knowledge base,
+provide a clear, accurate, and concise answer.
+
+Rules:
+- Answer ONLY from the provided KPI context — do not hallucinate formulas or definitions.
+- For KPI definitions: state the name, description, and exact formula clearly.
+- For "which tab" questions: state the tab name.
+- For formula questions: show the formula clearly with an explanation.
+- Keep the answer concise but complete (3-6 sentences max per KPI).
+- If multiple KPIs are retrieved, focus on the most relevant one first.
+- Do NOT generate SQL — just explain the KPI.
+"""
+
+    user_message = (
+        f"User Question: {query}\n\n"
+        f"Retrieved KPI Knowledge:\n{kpi_context_str}"
+    )
+
+    try:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_message},
+        ]
+        response = _rag_llm.invoke(messages)
+        answer = response.content.strip()
+    except Exception as e:
+        print(f"  ⚠ RAG LLM call failed: {e}")
+        answer = f"KPI context retrieved but answer generation failed: {e}"
+
+    # Step 4: Build source list for transparency
+    sources = []
+    for r in kpi_results:
+        m = r["metadata"]
+        if m.get("doc_type") == "kpi":
+            sources.append({
+                "kpi_id":   m.get("kpi_id", ""),
+                "name":     m.get("name", ""),
+                "tab":      m.get("tab", ""),
+                "score":    r.get("score", 0),
+            })
+        elif m.get("doc_type") == "tab":
+            sources.append({
+                "tab_id":   m.get("tab_id", ""),
+                "tab_name": m.get("tab_name", ""),
+                "score":    r.get("score", 0),
+            })
+
+    kpi_rag_result = {
+        "answer":          answer,
+        "sources":         sources,
+        "retrieved_count": len(kpi_results),
+        "intent":          intent,
+    }
+
+    print(f"  ✓ KPI RAG answer generated | Sources: {[s.get('name', s.get('tab_name','')) for s in sources]}")
+    latency_ms = round((time.time() - t) * 1000, 2)
+    return {
+        **state,
+        "kpi_rag_result": kpi_rag_result,
+        "node_latencies": {**state.get("node_latencies", {}), "kpi_rag": latency_ms}
+    }
+
+
 def node_table(state: PipelineState) -> PipelineState:
-    """Node 2: Table Selection."""
     print(f"\n[Orchestrator] ── Node 2: Table Agent (ReAct)")
     t = time.time()
     schema_result = select_tables(
@@ -206,7 +305,6 @@ def node_table(state: PipelineState) -> PipelineState:
 
 
 def node_planner(state: PipelineState) -> PipelineState:
-    """Node 3: Query Planner (CoT)."""
     print(f"\n[Orchestrator] ── Node 3: Planner Agent (CoT)")
     t = time.time()
     result = plan_query(
@@ -215,8 +313,7 @@ def node_planner(state: PipelineState) -> PipelineState:
         schema_result=state["schema_result"],
         conversation_history=state["conversation_history"]
     )
-    print(f"  Chart: {result.get('suggested_chart_type')} | "
-          f"Steps: {len(result.get('plan_steps', []))}")
+    print(f"  Chart: {result.get('suggested_chart_type')} | Steps: {len(result.get('plan_steps', []))}")
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         **state,
@@ -225,10 +322,7 @@ def node_planner(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Parallel SQL Generators ─────────────────────────────────────────────────
-
 def _gen_kwargs(state: PipelineState) -> dict:
-    """Common kwargs for all SQL generators."""
     return dict(
         user_question=state["user_question"],
         intent_result=state["intent_result"],
@@ -241,7 +335,6 @@ def _gen_kwargs(state: PipelineState) -> dict:
 
 
 def node_sql_gen_a(state: PipelineState) -> PipelineState:
-    """Node 4a: SQL Generator A — Direct (temp=0.0)."""
     print(f"\n[Orchestrator] ── Node 4a: SQL Gen A (direct)")
     t = time.time()
     result = generate_sql_a(**_gen_kwargs(state))
@@ -254,7 +347,6 @@ def node_sql_gen_a(state: PipelineState) -> PipelineState:
 
 
 def node_sql_gen_b(state: PipelineState) -> PipelineState:
-    """Node 4b: SQL Generator B — Reasoning (temp=0.2)."""
     print(f"\n[Orchestrator] ── Node 4b: SQL Gen B (reasoning)")
     t = time.time()
     result = generate_sql_b(**_gen_kwargs(state))
@@ -267,7 +359,6 @@ def node_sql_gen_b(state: PipelineState) -> PipelineState:
 
 
 def node_sql_gen_c(state: PipelineState) -> PipelineState:
-    """Node 4c: SQL Generator C — Example-driven (temp=0.4)."""
     print(f"\n[Orchestrator] ── Node 4c: SQL Gen C (example-driven)")
     t = time.time()
     result = generate_sql_c(**_gen_kwargs(state))
@@ -279,28 +370,19 @@ def node_sql_gen_c(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Unit Tester ──────────────────────────────────────────────────────────────
-
 def node_unit_tester(state: PipelineState) -> PipelineState:
-    """Node 5: Unit Tester — scores candidates and picks the best."""
     print(f"\n[Orchestrator] ── Node 5: Unit Tester Agent")
     t = time.time()
     candidates = state.get("sql_candidates", [])
     print(f"  Evaluating {len(candidates)} candidates...")
-
     ut_result = evaluate_candidates(
         sql_candidates=candidates,
         user_question=state["user_question"],
         schema_result=state["schema_result"],
     )
-
     best = ut_result["best_sql"]
     print(f"  Winner: Strategy '{best.get('strategy')}' "
           f"(score: {ut_result['scores'][0]['score'] if ut_result['scores'] else 'N/A'})")
-    for s in ut_result.get("scores", []):
-        emoji = "✓" if s["dry_run_ok"] else "✗"
-        print(f"    {emoji} {s['strategy']}: score={s['score']} rows={s['row_count']}")
-
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         **state,
@@ -310,15 +392,11 @@ def node_unit_tester(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Parallel Verification ───────────────────────────────────────────────────
-
 def node_self_critic(state: PipelineState) -> PipelineState:
-    """Node 6a: Self-Critic — semantic/logical SQL validation (advisory)."""
     print(f"\n[Orchestrator] ── Node 6a: Self-Critic Agent")
     t = time.time()
     sql = state["sql_result"].get("sql", "")
     if not sql or not sql.strip():
-        print(f"  ⊘ No SQL to critique — skipping")
         return {
             "verification_results": {"critic": {"is_correct": False, "issues": ["No SQL generated."]}},
             "node_latencies": {**state.get("node_latencies", {}), "self_critic": round((time.time() - t) * 1000, 2)},
@@ -330,10 +408,6 @@ def node_self_critic(state: PipelineState) -> PipelineState:
         schema_result=state["schema_result"],
         plan_result=state["plan_result"],
     )
-    if result.get("is_correct"):
-        print(f"  ✓ SQL is logically correct")
-    else:
-        print(f"  ⚠ Issues found (advisory): {result.get('issues', [])}")
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         "verification_results": {"critic": result},
@@ -343,7 +417,6 @@ def node_self_critic(state: PipelineState) -> PipelineState:
 
 
 def node_sql_validator(state: PipelineState) -> PipelineState:
-    """Node 6b: SQL Validator — syntax/schema validation."""
     print(f"\n[Orchestrator] ── Node 6b: SQL Validator Agent")
     t = time.time()
     result = validate_sql(
@@ -352,10 +425,6 @@ def node_sql_validator(state: PipelineState) -> PipelineState:
         schema_result=state["schema_result"],
         plan_result=state["plan_result"]
     )
-    if result.get("is_valid"):
-        print(f"  ✓ Validation PASSED | Checks: {result.get('checks')}")
-    else:
-        print(f"  ✗ Validation FAILED | Fix: {result.get('fix_suggestion')}")
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         "verification_results": {"validator": result},
@@ -365,15 +434,9 @@ def node_sql_validator(state: PipelineState) -> PipelineState:
 
 
 def node_cost_estimator(state: PipelineState) -> PipelineState:
-    """Node 6c: Cost Estimator — query plan analysis."""
     print(f"\n[Orchestrator] ── Node 6c: Cost Estimator Agent")
     t = time.time()
-    sql = state["sql_result"].get("sql", "")
-    result = estimate_cost(sql)
-    print(f"  Cost: {result.get('estimated_cost')} | Full scan: {result.get('has_full_scan')}")
-    if result.get("warnings"):
-        for w in result["warnings"]:
-            print(f"  ⚠ {w}")
+    result = estimate_cost(state["sql_result"].get("sql", ""))
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         "verification_results": {"cost": result},
@@ -382,33 +445,18 @@ def node_cost_estimator(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Decision Aggregator ─────────────────────────────────────────────────────
-
 def node_decision_aggregator(state: PipelineState) -> PipelineState:
-    """Node 7: Decision Aggregator — combine verification results."""
     print(f"\n[Orchestrator] ── Node 7: Decision Aggregator")
     t = time.time()
-
     vr = state.get("verification_results", {})
     validator = vr.get("validator", {})
     critic = vr.get("critic", {})
     cost = vr.get("cost", {})
-
-    # Determine if we need a retry
     retry_count = state.get("sql_retry_count", 0)
     fix_suggestion = state.get("fix_suggestion")
-
     if not validator.get("is_valid") and retry_count < MAX_SQL_RETRIES:
         retry_count += 1
         fix_suggestion = validator.get("fix_suggestion", "Retry SQL generation.")
-        print(f"  → Validation failed, will retry ({retry_count}/{MAX_SQL_RETRIES})")
-
-    # Log cost warnings
-    if cost.get("has_full_scan"):
-        print(f"  ⚠ Cost warning: full table scan detected")
-
-    print(f"  Decision: {'PROCEED' if validator.get('is_valid') else 'RETRY' if retry_count <= MAX_SQL_RETRIES else 'PROCEED (max retries)'}")
-
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         **state,
@@ -421,17 +469,11 @@ def node_decision_aggregator(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Executor ─────────────────────────────────────────────────────────────────
-
 def node_executor(state: PipelineState) -> PipelineState:
-    """Node 8: SQL Executor."""
     print(f"\n[Orchestrator] ── Node 8: Executor")
     t = time.time()
     sql = state["sql_result"].get("sql", "")
-
-    # Safety guard / Empty SQL guard
     if not sql or not sql.strip() or state["sql_result"].get("confidence_score", 1.0) <= 0.05:
-        print("  ⊘ SQL Generator explicitly returned empty SQL (or confidence <= 0.05). Treating as unanswerable.")
         latency_ms = round((time.time() - t) * 1000, 2)
         return {
             **state,
@@ -440,12 +482,9 @@ def node_executor(state: PipelineState) -> PipelineState:
             "pipeline_error": "Query cannot be answered with current schema.",
             "node_latencies": {**state.get("node_latencies", {}), "executor": latency_ms}
         }
-
     DANGEROUS = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "TRUNCATE"]
-    sql_upper = sql.upper()
-    blocked_kw = next((kw for kw in DANGEROUS if re.search(rf"\b{kw}\b", sql_upper)), None)
+    blocked_kw = next((kw for kw in DANGEROUS if re.search(rf"\b{kw}\b", sql.upper())), None)
     if blocked_kw:
-        print(f"  ✗ BLOCKED — dangerous keyword: {blocked_kw}")
         latency_ms = round((time.time() - t) * 1000, 2)
         return {
             **state,
@@ -453,16 +492,7 @@ def node_executor(state: PipelineState) -> PipelineState:
             "pipeline_error": "Dangerous SQL blocked.",
             "node_latencies": {**state.get("node_latencies", {}), "executor": latency_ms}
         }
-
     result = execute_sql(sql=sql)
-    if result.get("success"):
-        print(f"  ✓ {result.get('row_count')} rows | {result.get('latency_ms')}ms")
-    else:
-        print(f"  ✗ Execution failed: {result.get('error')}")
-
-    latency_ms = round((time.time() - t) * 1000, 2)
-
-    # Track execution retries for schema errors
     exec_retries = state.get("exec_retry_count", 0)
     new_fix = state.get("fix_suggestion")
     if not result.get("success"):
@@ -470,7 +500,7 @@ def node_executor(state: PipelineState) -> PipelineState:
         if any(kw in error_msg.lower() for kw in ["no such column", "no such table", "ambiguous column"]):
             new_fix = f"EXECUTION ERROR: {error_msg}. Check the VALID JOINS section."
             exec_retries += 1
-
+    latency_ms = round((time.time() - t) * 1000, 2)
     return {
         **state,
         "execution_result": result,
@@ -481,10 +511,7 @@ def node_executor(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Parallel Result Processing ───────────────────────────────────────────────
-
 def node_formatter(state: PipelineState) -> PipelineState:
-    """Node 9a: Result Formatter."""
     print(f"\n[Orchestrator] ── Node 9a: Formatter Agent")
     t = time.time()
     result = format_result(
@@ -495,7 +522,6 @@ def node_formatter(state: PipelineState) -> PipelineState:
         intent_result=state["intent_result"],
         plan_result=state["plan_result"]
     )
-    print(f"  Chart: {result.get('chart_type')} | Confidence: {result.get('confidence_score')}")
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         "format_result": result,
@@ -504,7 +530,6 @@ def node_formatter(state: PipelineState) -> PipelineState:
 
 
 def node_insight_generator(state: PipelineState) -> PipelineState:
-    """Node 9b: Insight Generator (parallel with formatter)."""
     print(f"\n[Orchestrator] ── Node 9b: Insight Generator Agent")
     t = time.time()
     result = generate_insights(
@@ -512,10 +537,6 @@ def node_insight_generator(state: PipelineState) -> PipelineState:
         sql=state["sql_result"].get("sql", ""),
         execution_result=state.get("execution_result", {}),
     )
-    insights = result.get("insights", [])
-    print(f"  Generated {len(insights)} insights")
-    for ins in insights[:3]:
-        print(f"    💡 {ins[:100]}")
     latency_ms = round((time.time() - t) * 1000, 2)
     return {
         "insight_result": result,
@@ -523,59 +544,70 @@ def node_insight_generator(state: PipelineState) -> PipelineState:
     }
 
 
-# ── Final Output combiner ───────────────────────────────────────────────────
-
 def node_final_output(state: PipelineState) -> PipelineState:
-    """Node 10: Combine formatter + insight results."""
     print(f"\n[Orchestrator] ── Node 10: Final Output")
     return state
 
 
 def node_result_dispatch(state: PipelineState) -> PipelineState:
-    """Passthrough node that fans out to parallel result processors."""
     print(f"\n[Orchestrator] ── Result Dispatch → Formatter + Insight Generator")
-    return state  # All data is already in state from parallel nodes
+    return state
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  ROUTING LOGIC
 # ══════════════════════════════════════════════════════════════════════════════
 
+# KPI-based intents that should go through the RAG path
+_KPI_INTENTS = {"kpi_info", "hybrid"}
+
 def route_after_intent(state: PipelineState) -> str:
+    """
+    Three-way routing:
+      - unsafe / unanswerable → end_short_circuit
+      - kpi_info / hybrid     → kpi_rag           (NEW)
+      - everything else       → table_agent        (existing SQL path)
+    """
     if state.get("short_circuit"):
         return "end_short_circuit"
+    intent = state.get("intent_result", {}).get("intent", "")
+    if intent in _KPI_INTENTS:
+        return "kpi_rag"
     return "table_agent"
 
 
+def route_after_kpi_rag(state: PipelineState) -> str:
+    """
+    After RAG node:
+      - kpi_info  → END  (pure explanation, no SQL needed)
+      - hybrid    → table_agent  (need SQL data too)
+    """
+    intent = state.get("intent_result", {}).get("intent", "kpi_info")
+    if intent == "hybrid":
+        return "table_agent"
+    return "end_kpi_rag"
+
+
 def route_after_decision(state: PipelineState) -> str:
-    """Retry SQL generation if validation failed and retries remain.
-    Never retry if the SQL is empty (unanswerable query)."""
     sql = state.get("sql_result", {}).get("sql", "")
-    # If SQL is empty, the query is unanswerable — skip retries entirely
     if not sql or not sql.strip():
-        print("  → SQL is empty (unanswerable) — skipping retries, proceeding to executor")
         return "executor"
     validation = state.get("validation_result", {})
     retries = state.get("sql_retry_count", 0)
     if not validation.get("is_valid") and retries < MAX_SQL_RETRIES:
-        print(f"  → Retrying SQL generation ({retries}/{MAX_SQL_RETRIES})")
-        return "sql_gen_a"  # retry with direct strategy only
-    if not validation.get("is_valid"):
-        print(f"  → Max retries reached — proceeding")
+        return "sql_gen_a"
     return "executor"
 
 
 def route_after_executor(state: PipelineState) -> str:
-    """Retry if execution failed with schema errors (not for empty SQL)."""
     sql = state.get("sql_result", {}).get("sql", "")
     if not sql or not sql.strip():
-        return "result_dispatch"  # unanswerable, don't retry
+        return "result_dispatch"
     exec_result = state.get("execution_result", {})
     exec_retries = state.get("exec_retry_count", 0)
     if not exec_result.get("success") and exec_retries <= MAX_EXEC_RETRIES:
         error = exec_result.get("error", "")
         if any(kw in error.lower() for kw in ["no such column", "no such table", "ambiguous column"]):
-            print(f"  → Schema error — retrying (exec retry {exec_retries}/{MAX_EXEC_RETRIES})")
             return "sql_gen_a"
     return "result_dispatch"
 
@@ -588,34 +620,53 @@ def build_pipeline() -> StateGraph:
     graph = StateGraph(PipelineState)
 
     # ── Register all nodes ────────────────────────────────────────────────
-    graph.add_node("retriever",            node_retriever)
-    graph.add_node("intent",               node_intent)
-    graph.add_node("table_agent",          node_table)
-    graph.add_node("query_planner",        node_planner)
-    graph.add_node("sql_gen_a",            node_sql_gen_a)
-    graph.add_node("sql_gen_b",            node_sql_gen_b)
-    graph.add_node("sql_gen_c",            node_sql_gen_c)
-    graph.add_node("unit_tester",          node_unit_tester)
-    graph.add_node("self_critic",          node_self_critic)
-    graph.add_node("sql_validator",        node_sql_validator)
-    graph.add_node("cost_estimator",       node_cost_estimator)
-    graph.add_node("decision_aggregator",  node_decision_aggregator)
-    graph.add_node("executor",             node_executor)
-    graph.add_node("result_formatter",     node_formatter)
-    graph.add_node("insight_generator",    node_insight_generator)
-    graph.add_node("result_dispatch",      node_result_dispatch)
-    graph.add_node("final_output",         node_final_output)
+    graph.add_node("retriever",           node_retriever)
+    graph.add_node("intent",              node_intent)
+    graph.add_node("kpi_rag",             node_kpi_rag)            # NEW
+    graph.add_node("table_agent",         node_table)
+    graph.add_node("query_planner",       node_planner)
+    graph.add_node("sql_gen_a",           node_sql_gen_a)
+    graph.add_node("sql_gen_b",           node_sql_gen_b)
+    graph.add_node("sql_gen_c",           node_sql_gen_c)
+    graph.add_node("unit_tester",         node_unit_tester)
+    graph.add_node("self_critic",         node_self_critic)
+    graph.add_node("sql_validator",       node_sql_validator)
+    graph.add_node("cost_estimator",      node_cost_estimator)
+    graph.add_node("decision_aggregator", node_decision_aggregator)
+    graph.add_node("executor",            node_executor)
+    graph.add_node("result_formatter",    node_formatter)
+    graph.add_node("insight_generator",   node_insight_generator)
+    graph.add_node("result_dispatch",     node_result_dispatch)
+    graph.add_node("final_output",        node_final_output)
 
     # ── Entry point ───────────────────────────────────────────────────────
     graph.set_entry_point("retriever")
 
-    # ── Sequential: retriever → intent → table → planner ─────────────────
+    # ── retriever → intent ────────────────────────────────────────────────
     graph.add_edge("retriever", "intent")
+
+    # ── intent → 3-way conditional routing ───────────────────────────────
     graph.add_conditional_edges(
         "intent",
         route_after_intent,
-        {"table_agent": "table_agent", "end_short_circuit": END}
+        {
+            "end_short_circuit": END,
+            "kpi_rag":           "kpi_rag",      # NEW
+            "table_agent":       "table_agent",
+        }
     )
+
+    # ── NEW: kpi_rag → END (kpi_info) or table_agent (hybrid) ────────────
+    graph.add_conditional_edges(
+        "kpi_rag",
+        route_after_kpi_rag,
+        {
+            "end_kpi_rag": END,          # pure kpi_info — stop here
+            "table_agent": "table_agent" # hybrid — continue to SQL
+        }
+    )
+
+    # ── Sequential: table → planner ───────────────────────────────────────
     graph.add_edge("table_agent", "query_planner")
 
     # ── Fan-out: planner → 3 parallel SQL generators ─────────────────────
@@ -629,14 +680,14 @@ def build_pipeline() -> StateGraph:
     graph.add_edge("sql_gen_c", "unit_tester")
 
     # ── Fan-out: unit_tester → 3 parallel verification agents ────────────
-    graph.add_edge("unit_tester", "self_critic")
-    graph.add_edge("unit_tester", "sql_validator")
-    graph.add_edge("unit_tester", "cost_estimator")
+    graph.add_edge("unit_tester",  "self_critic")
+    graph.add_edge("unit_tester",  "sql_validator")
+    graph.add_edge("unit_tester",  "cost_estimator")
 
     # ── Fan-in: verification → decision_aggregator ───────────────────────
-    graph.add_edge("self_critic",     "decision_aggregator")
-    graph.add_edge("sql_validator",   "decision_aggregator")
-    graph.add_edge("cost_estimator",  "decision_aggregator")
+    graph.add_edge("self_critic",    "decision_aggregator")
+    graph.add_edge("sql_validator",  "decision_aggregator")
+    graph.add_edge("cost_estimator", "decision_aggregator")
 
     # ── Conditional: decision → executor or retry ────────────────────────
     graph.add_conditional_edges(
@@ -669,12 +720,10 @@ def build_pipeline() -> StateGraph:
 
 _cache: dict = {}
 CACHE_TTL = 300
-CACHE_MAX = 20
-
+CACHE_MAX  = 20
 
 def _cache_key(question: str) -> str:
     return hashlib.md5(question.strip().lower().encode()).hexdigest()
-
 
 def _cache_get(question: str) -> dict | None:
     key = _cache_key(question)
@@ -684,7 +733,6 @@ def _cache_get(question: str) -> dict | None:
             return result
         del _cache[key]
     return None
-
 
 def _cache_set(question: str, result: dict) -> None:
     if len(_cache) >= CACHE_MAX:
@@ -698,117 +746,126 @@ def _cache_set(question: str, result: dict) -> None:
 try:
     _checkpointer = get_checkpointer()
     _pipeline = build_pipeline().compile(checkpointer=_checkpointer)
-    print("[Orchestrator] Pipeline compiled with parallel multi-agent architecture.")
+    print("[Orchestrator] Pipeline compiled with KPI RAG + parallel multi-agent architecture.")
 except Exception as e:
     print(f"[Orchestrator] Memory init failed ({e}) — compiling without checkpointer.")
     _pipeline = build_pipeline().compile()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PUBLIC API
+#  FINAL RESULT BUILDER
 # ══════════════════════════════════════════════════════════════════════════════
 
-def run_pipeline(
-    user_question: str,
-    conversation_history: list[dict] | None = None,
-    user_id: str = "default_user",
-) -> dict:
-    """Run the full parallel NL→SQL pipeline."""
-    if conversation_history is None:
-        conversation_history = []
+def _build_final_result(state: dict, usage: dict, elapsed: float,
+                        conversation_history: list, user_question: str,
+                        user_id: str) -> dict:
+    intent = state.get("intent_result", {}).get("intent", "")
 
-    if not conversation_history:
-        cached = _cache_get(user_question)
-        if cached:
-            print(f"[Orchestrator] Cache HIT for: {user_question[:60]}")
-            return cached
-
-    history = conversation_history[-6:]
-
-    initial_state: PipelineState = {
-        "user_question":        user_question,
-        "conversation_history": history,
-        "intent_result":        {},
-        "schema_result":        {},
-        "plan_result":          {},
-        "sql_result":           {},
-        "critic_result":        {},
-        "validation_result":    {},
-        "execution_result":     {},
-        "format_result":        {},
-        "sql_candidates":       [],
-        "verification_results": {},
-        "ut_result":            {},
-        "cost_result":          {},
-        "insight_result":       {},
-        "sql_retry_count":      0,
-        "exec_retry_count":     0,
-        "fix_suggestion":       None,
-        "pipeline_error":       None,
-        "short_circuit":        False,
-        "retrieved_context":    {},
-        "node_latencies":       {},
-    }
-
-    thread_id = hashlib.md5(f"{user_id}:{user_question}".encode()).hexdigest()
-    config = {"configurable": {"thread_id": thread_id}}
-
-    start = time.time()
-    
-    with get_openai_callback() as cb:
-        state = _pipeline.invoke(initial_state, config=config)
-        usage = {
-            "total_tokens": cb.total_tokens,
-            "prompt_tokens": cb.prompt_tokens,
-            "completion_tokens": cb.completion_tokens,
-            "total_cost": cb.total_cost,
-        }
-        
-    elapsed = round((time.time() - start) * 1000, 2)
-
-    # ── Final result construction ─────────────────────────────────────────
-    return _build_final_result(state, usage, elapsed, conversation_history, user_question, user_id)
-
-
-def _build_final_result(state: dict, usage: dict, elapsed: float, conversation_history: list, user_question: str, user_id: str) -> dict:
-    final_output = {
-        **state,
-        "usage_stats": usage,
-        "pipeline_meta": {
-            "total_latency_ms": elapsed,
-            "total_tokens": usage.get("total_tokens", 0),
-            "total_cost": usage.get("total_cost", 0.0),
-        }
-    }
-
+    # ── Short-circuit (unsafe / unanswerable) ─────────────────────────────
     if state.get("short_circuit"):
-        intent = state.get("intent_result", {})
         return {
-            "answer": state.get("pipeline_error", "This question cannot be answered."),
-            "intent": intent.get("intent", "out_of_scope"),
-            "sql": None, "confidence": 0.0,
+            "answer":     state.get("pipeline_error", "This question cannot be answered."),
+            "intent":     intent,
+            "sql":        None, "confidence": 0.0,
             "chart_type": None, "chart_data": {},
             "applied_filters": {}, "follow_ups": [], "warnings": [],
-            "insights": [],
+            "insights":   [],
+            "kpi_sources": [],
             "pipeline_meta": {
-                "short_circuit": True,
-                "total_latency_ms": elapsed,
-                "node_latencies": state.get("node_latencies", {}),
-                "sql_retries": 0,
+                "short_circuit":      True,
+                "total_latency_ms":   elapsed,
+                "node_latencies":     state.get("node_latencies", {}),
+                "sql_retries":        0,
                 "candidates_evaluated": 0,
-                "total_tokens": usage.get("total_tokens", 0),
-                "total_cost": usage.get("total_cost", 0.0),
+                "total_tokens":       usage.get("total_tokens", 0),
+                "total_cost":         usage.get("total_cost", 0.0),
             }
         }
 
-    fmt = state.get("format_result", {})
-    ut = state.get("ut_result", {})
-    cost = state.get("cost_result", {})
+    # ── kpi_info — pure RAG answer, no SQL ────────────────────────────────
+    if intent == "kpi_info":
+        kpi_rag = state.get("kpi_rag_result", {})
+        result = {
+            "answer":          kpi_rag.get("answer", "No KPI information found."),
+            "intent":          intent,
+            "sql":             None,
+            "confidence":      0.9 if kpi_rag.get("retrieved_count", 0) > 0 else 0.3,
+            "chart_type":      None,
+            "chart_data":      {},
+            "applied_filters": {},
+            "follow_ups":      [],
+            "warnings":        [],
+            "insights":        [],
+            "kpi_sources":     kpi_rag.get("sources", []),
+            "pipeline_meta": {
+                "short_circuit":        False,
+                "rag_path":             True,
+                "total_latency_ms":     elapsed,
+                "node_latencies":       state.get("node_latencies", {}),
+                "kpi_docs_retrieved":   kpi_rag.get("retrieved_count", 0),
+                "sql_retries":          0,
+                "candidates_evaluated": 0,
+                "total_tokens":         usage.get("total_tokens", 0),
+                "total_cost":           usage.get("total_cost", 0.0),
+            }
+        }
+        if not conversation_history:
+            _cache_set(user_question, result)
+        return result
+
+    # ── hybrid — RAG answer + SQL data ────────────────────────────────────
+    if intent == "hybrid":
+        kpi_rag = state.get("kpi_rag_result", {})
+        fmt = state.get("format_result", {})
+        insight = state.get("insight_result", {})
+
+        # Combine RAG explanation with SQL data answer
+        rag_answer  = kpi_rag.get("answer", "")
+        sql_summary = fmt.get("nl_summary", "")
+        combined_answer = (
+            f"{rag_answer}\n\n**Data:**\n{sql_summary}"
+            if rag_answer and sql_summary
+            else (rag_answer or sql_summary or "No answer available.")
+        )
+
+        result = {
+            "answer":          combined_answer,
+            "intent":          intent,
+            "sql":             state.get("sql_result", {}).get("sql"),
+            "confidence":      fmt.get("confidence_score", 0.0),
+            "chart_type":      fmt.get("chart_type"),
+            "chart_data":      fmt.get("chart_data", {}),
+            "applied_filters": fmt.get("applied_filters", {}),
+            "follow_ups":      fmt.get("follow_up_suggestions", []),
+            "warnings":        fmt.get("data_warnings", []),
+            "insights":        insight.get("insights", []),
+            "kpi_sources":     kpi_rag.get("sources", []),
+            "pipeline_meta": {
+                "short_circuit":        False,
+                "rag_path":             True,
+                "hybrid":               True,
+                "total_latency_ms":     elapsed,
+                "node_latencies":       state.get("node_latencies", {}),
+                "kpi_docs_retrieved":   kpi_rag.get("retrieved_count", 0),
+                "sql_retries":          state.get("sql_retry_count", 0),
+                "candidates_evaluated": len(state.get("ut_result", {}).get("scores", [])),
+                "total_tokens":         usage.get("total_tokens", 0),
+                "total_cost":           usage.get("total_cost", 0.0),
+            }
+        }
+        if not conversation_history:
+            _cache_set(user_question, result)
+        return result
+
+    # ── Standard SQL path ─────────────────────────────────────────────────
+    fmt     = state.get("format_result", {})
+    ut      = state.get("ut_result", {})
+    cost    = state.get("cost_result", {})
     insight = state.get("insight_result", {})
 
     final_result = {
         "answer":          fmt.get("nl_summary", "No summary available."),
-        "intent":          state.get("intent_result", {}).get("intent"),
+        "intent":          intent,
         "sql":             state.get("sql_result", {}).get("sql"),
         "confidence":      fmt.get("confidence_score", 0.0),
         "chart_type":      fmt.get("chart_type"),
@@ -817,8 +874,10 @@ def _build_final_result(state: dict, usage: dict, elapsed: float, conversation_h
         "follow_ups":      fmt.get("follow_up_suggestions", []),
         "warnings":        fmt.get("data_warnings", []),
         "insights":        insight.get("insights", []),
+        "kpi_sources":     [],
         "pipeline_meta": {
             "short_circuit":     False,
+            "rag_path":          False,
             "total_latency_ms":  elapsed,
             "node_latencies":    state.get("node_latencies", {}),
             "sql_retries":       state.get("sql_retry_count", 0),
@@ -851,13 +910,77 @@ def _build_final_result(state: dict, usage: dict, elapsed: float, conversation_h
     return final_result
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  PUBLIC API
+# ══════════════════════════════════════════════════════════════════════════════
+
+def run_pipeline(
+    user_question: str,
+    conversation_history: list[dict] | None = None,
+    user_id: str = "default_user",
+) -> dict:
+    """Run the full pipeline (NL→SQL or KPI RAG depending on intent)."""
+    if conversation_history is None:
+        conversation_history = []
+
+    if not conversation_history:
+        cached = _cache_get(user_question)
+        if cached:
+            print(f"[Orchestrator] Cache HIT for: {user_question[:60]}")
+            return cached
+
+    history = conversation_history[-6:]
+
+    initial_state: PipelineState = {
+        "user_question":        user_question,
+        "conversation_history": history,
+        "intent_result":        {},
+        "schema_result":        {},
+        "plan_result":          {},
+        "sql_result":           {},
+        "critic_result":        {},
+        "validation_result":    {},
+        "execution_result":     {},
+        "format_result":        {},
+        "sql_candidates":       [],
+        "verification_results": {},
+        "ut_result":            {},
+        "cost_result":          {},
+        "insight_result":       {},
+        "kpi_rag_result":       {},   # NEW
+        "sql_retry_count":      0,
+        "exec_retry_count":     0,
+        "fix_suggestion":       None,
+        "pipeline_error":       None,
+        "short_circuit":        False,
+        "retrieved_context":    {},
+        "node_latencies":       {},
+        "usage_stats":          {},
+    }
+
+    thread_id = hashlib.md5(f"{user_id}:{user_question}".encode()).hexdigest()
+    config = {"configurable": {"thread_id": thread_id}}
+    start = time.time()
+
+    with get_openai_callback() as cb:
+        state = _pipeline.invoke(initial_state, config=config)
+        usage = {
+            "total_tokens":       cb.total_tokens,
+            "prompt_tokens":      cb.prompt_tokens,
+            "completion_tokens":  cb.completion_tokens,
+            "total_cost":         cb.total_cost,
+        }
+
+    elapsed = round((time.time() - start) * 1000, 2)
+    return _build_final_result(state, usage, elapsed, conversation_history, user_question, user_id)
+
+
 def stream_pipeline(
     user_question: str,
     conversation_history: list[dict] | None = None,
     user_id: str = "default_user",
 ):
     """Generator that yields streaming SSE updates for the frontend."""
-    import json
     if conversation_history is None:
         conversation_history = []
 
@@ -885,6 +1008,7 @@ def stream_pipeline(
         "ut_result":            {},
         "cost_result":          {},
         "insight_result":       {},
+        "kpi_rag_result":       {},   # NEW
         "sql_retry_count":      0,
         "exec_retry_count":     0,
         "fix_suggestion":       None,
@@ -892,30 +1016,27 @@ def stream_pipeline(
         "short_circuit":        False,
         "retrieved_context":    {},
         "node_latencies":       {},
+        "usage_stats":          {},
     }
 
     thread_id = hashlib.md5(f"{user_id}:{user_question}".encode()).hexdigest()
     config = {"configurable": {"thread_id": thread_id}}
     start = time.time()
-    
+
     with get_openai_callback() as cb:
         for event in _pipeline.stream(initial_state, config=config, stream_mode="updates"):
-            for node_name, state_diff in event.items():
-                if node_name == "intent":
-                    pass # ignore or map correctly
+            for node_name, _ in event.items():
                 yield f"data: {json.dumps({'type': 'node', 'name': node_name})}\n\n"
-        
         final_state = _pipeline.get_state(config).values
         usage = {
-            "total_tokens": cb.total_tokens,
-            "prompt_tokens": cb.prompt_tokens,
-            "completion_tokens": cb.completion_tokens,
-            "total_cost": cb.total_cost,
+            "total_tokens":       cb.total_tokens,
+            "prompt_tokens":      cb.prompt_tokens,
+            "completion_tokens":  cb.completion_tokens,
+            "total_cost":         cb.total_cost,
         }
-        
+
     elapsed = round((time.time() - start) * 1000, 2)
     final_result = _build_final_result(final_state, usage, elapsed, conversation_history, user_question, user_id)
-    
     yield f"data: {json.dumps({'type': 'final', 'data': final_result})}\n\n"
 
 
@@ -923,7 +1044,7 @@ def stream_pipeline(
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Orchestrator — Parallel Multi-Agent Pipeline")
+    print("Orchestrator — KPI RAG + Parallel Multi-Agent Pipeline")
     print("Type 'exit' or 'quit' to stop.")
     print("=" * 60)
 
@@ -933,40 +1054,26 @@ if __name__ == "__main__":
         try:
             question = input("\nAsk a question: ").strip()
             if question.lower() in ("exit", "quit"):
-                print("Exiting...")
                 break
             if not question:
                 continue
 
-            print(f"\nProcessing '{question}'...")
-
             result = run_pipeline(user_question=question, conversation_history=conversation_history)
 
             print(f"\n── Final Output ──")
-            print(f"  Answer      : {result['answer']}")
-            print(f"  Intent      : {result['intent']}")
-            print(f"  SQL         : {result['sql']}")
-            print(f"  Confidence  : {result['confidence']}")
-            print(f"  Chart Type  : {result['chart_type']}")
-            print(f"  Insights    : {result.get('insights', [])}")
-            print(f"  Follow-ups  : {result['follow_ups']}")
-            print(f"  Warnings    : {result['warnings']}")
-            print(f"  Latency     : {result['pipeline_meta']['total_latency_ms']}ms")
-            print(f"  Strategy    : {result['pipeline_meta'].get('winning_strategy')}")
-            print(f"  Candidates  : {result['pipeline_meta'].get('candidates_evaluated')}")
-            print(f"  Query Cost  : {result['pipeline_meta'].get('query_cost')}")
-            print(f"  Node Times  : {result['pipeline_meta'].get('node_latencies')}")
-            print(f"  SQL Retries : {result['pipeline_meta']['sql_retries']}")
-            print(f"  Tokens Used : {result['pipeline_meta'].get('total_tokens')}")
-            print(f"  Total Cost  : ${result['pipeline_meta'].get('total_cost', 0.0):.4f}")
+            print(f"  Answer   : {result['answer'][:200]}")
+            print(f"  Intent   : {result['intent']}")
+            print(f"  SQL      : {result['sql']}")
+            print(f"  RAG Path : {result['pipeline_meta'].get('rag_path', False)}")
+            if result.get("kpi_sources"):
+                print(f"  KPI Sources: {[s.get('name', s.get('tab_name')) for s in result['kpi_sources']]}")
+            print(f"  Latency  : {result['pipeline_meta']['total_latency_ms']}ms")
+            print(f"  Cost     : ${result['pipeline_meta'].get('total_cost', 0.0):.4f}")
             print("-" * 60)
 
             conversation_history.append({"role": "user", "content": question})
-            conversation_history.append({"role": "assistant", "content": result['answer']})
+            conversation_history.append({"role": "assistant", "content": result["answer"]})
 
-        except KeyboardInterrupt:
-            print("\nExiting...")
-            break
-        except EOFError:
+        except (KeyboardInterrupt, EOFError):
             print("\nExiting...")
             break

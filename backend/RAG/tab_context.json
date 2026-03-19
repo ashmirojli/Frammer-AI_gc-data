@@ -1,0 +1,189 @@
+[
+    {
+        "tab_id": "tab1",
+        "tab_name": "Executive Summary",
+        "purpose": "Top-level KPIs and MoM trends for leadership. Covers the full pipeline from upload to publish with 10 headline KPIs.",
+        "kpi_ids": [
+            "kpi_001",
+            "kpi_002",
+            "kpi_003",
+            "kpi_004",
+            "kpi_005",
+            "kpi_006",
+            "kpi_007",
+            "kpi_008",
+            "kpi_009",
+            "kpi_010"
+        ],
+        "key_tables": [
+            "Fact_Monthly",
+            "Fact_User_Summary",
+            "Fact_Video",
+            "Dim_Month",
+            "Dim_User"
+        ],
+        "sample_questions": [
+            "How many videos were uploaded this month?",
+            "What is the overall publish rate?",
+            "What is the Content Expansion Factor?",
+            "How many active users do we have?",
+            "What is the Editorial Yield percentage?",
+            "What is the Orphan Content Rate?",
+            "Show monthly upload trend",
+            "What is MoM upload momentum?"
+        ]
+    },
+    {
+        "tab_id": "tab2",
+        "tab_name": "Usage & Trends",
+        "purpose": "Time-based analysis of KPIs over the 12-month period. Covers efficiency trends, CEF over time, duration footprint, and data quality.",
+        "kpi_ids": [
+            "kpi_011",
+            "kpi_012",
+            "kpi_013",
+            "kpi_014",
+            "kpi_015",
+            "kpi_016",
+            "kpi_017",
+            "kpi_018",
+            "kpi_019"
+        ],
+        "key_tables": [
+            "Fact_Monthly",
+            "Fact_Input_Type",
+            "Fact_Output_Type",
+            "Fact_User_Summary",
+            "Fact_Video",
+            "Dim_Month",
+            "Dim_Input_Type",
+            "Dim_Output_Type"
+        ],
+        "sample_questions": [
+            "Show monthly publish rate trend",
+            "What is the drop-off count each month?",
+            "Which input type has the highest CEF?",
+            "What is the monthly productivity index?",
+            "Show the duration footprint over time",
+            "What is the metadata health score?",
+            "Which output type generates most clips per upload?",
+            "Show content expansion factor over 12 months"
+        ]
+    },
+    {
+        "tab_id": "tab3",
+        "tab_name": "Client / Channel / User Analysis",
+        "purpose": "Breakdown of KPIs by channel, user, and language. Covers user loyalty, platform dominance, and per-user productivity.",
+        "kpi_ids": [
+            "kpi_020",
+            "kpi_021",
+            "kpi_022",
+            "kpi_023",
+            "kpi_024",
+            "kpi_025",
+            "kpi_026",
+            "kpi_027",
+            "kpi_028",
+            "kpi_029",
+            "kpi_030",
+            "kpi_031",
+            "kpi_032",
+            "kpi_033",
+            "kpi_034",
+            "kpi_035",
+            "kpi_036",
+            "kpi_037"
+        ],
+        "key_tables": [
+            "Fact_User_Summary",
+            "Fact_User_Channel",
+            "Fact_Language",
+            "Fact_Channel_Publishing",
+            "Dim_User",
+            "Dim_Channel",
+            "Dim_Platform",
+            "Dim_Language"
+        ],
+        "sample_questions": [
+            "What is the active user ratio?",
+            "Which channel publishes the most?",
+            "What is the user repeatability rate?",
+            "Show user loyalty tier breakdown",
+            "Which language has the highest upload share?",
+            "What is the top 10% user contribution?",
+            "Show avg uploads per user",
+            "Which platform dominates publishing?"
+        ]
+    },
+    {
+        "tab_id": "tab4",
+        "tab_name": "Type Mix & Publishing Funnel",
+        "purpose": "Deep funnel analysis with advanced diversity metrics. Covers CEI, wastage, Simpson's diversity, Gini coefficient, PDI, latency, and consistency.",
+        "kpi_ids": [
+            "kpi_038",
+            "kpi_039",
+            "kpi_040",
+            "kpi_041",
+            "kpi_042",
+            "kpi_043",
+            "kpi_044",
+            "kpi_045",
+            "kpi_046",
+            "kpi_047",
+            "kpi_048",
+            "kpi_049"
+        ],
+        "key_tables": [
+            "Fact_Input_Type",
+            "Fact_Output_Type",
+            "Fact_Channel_Publishing",
+            "Fact_Monthly",
+            "Dim_Input_Type",
+            "Dim_Output_Type",
+            "Dim_Platform",
+            "Dim_Channel",
+            "Dim_Month"
+        ],
+        "sample_questions": [
+            "What is the Content Efficiency Index?",
+            "What is the wastage rate?",
+            "What is the duration amplification ratio?",
+            "What is the Mix Health Index?",
+            "What is the Platform Diversity Index?",
+            "What is the Channel Gini Coefficient?",
+            "Show publishing latency by input type",
+            "What is the consistency index?",
+            "Show the full publishing funnel"
+        ]
+    },
+    {
+        "tab_id": "tab5",
+        "tab_name": "Video Explorer",
+        "purpose": "Video-level detail explorer with search, filter, and drill-down. KPIs update dynamically based on applied filters.",
+        "kpi_ids": [
+            "kpi_050",
+            "kpi_051",
+            "kpi_052",
+            "kpi_053",
+            "kpi_054",
+            "kpi_055",
+            "kpi_056",
+            "kpi_057",
+            "kpi_058"
+        ],
+        "key_tables": [
+            "Fact_Video",
+            "Dim_User",
+            "Dim_Team",
+            "Dim_Platform"
+        ],
+        "sample_questions": [
+            "How many videos are in the current view?",
+            "What is the publish percentage for this filter?",
+            "How many unique users are in the current selection?",
+            "What is the type share breakdown?",
+            "Which team has the highest publish percentage?",
+            "Show top user in current filter",
+            "How many platforms are covered in this view?"
+        ]
+    }
+]

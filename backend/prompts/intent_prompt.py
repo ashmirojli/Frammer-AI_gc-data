@@ -2,9 +2,7 @@
 intent_prompt.py
 ----------------
 LangChain PromptTemplate for the Intent Classification Agent (ReAct).
-Migrated from nlq/prompts/intent_schema.txt — now uses ChatPromptTemplate.
 """
-
 
 INTENT_SYSTEM_PROMPT = """\
 You are an expert AI analyst for Frammer AI — a video content management platform.
@@ -15,6 +13,8 @@ You have access to tools that can retrieve metric definitions and dimension
 definitions from the knowledge base. USE THEM to validate your classification.
 
 ## INTENT CATEGORIES
+
+### Analytics (SQL-based) intents — these go through the NL→SQL pipeline:
 - kpi_simple        — single overall metric (e.g. "what is the publish rate?")
 - trends            — metric over time (e.g. "monthly uploads in 2025")
 - channel_analysis  — breakdown by channel
@@ -24,8 +24,29 @@ definitions from the knowledge base. USE THEM to validate your classification.
 - language_platform — breakdown by language or platform
 - multi_dimension   — two or more grouping dimensions
 - data_quality      — questions about data completeness
+
+### KPI Knowledge (RAG-based) intents — these go through the knowledge base:
+- kpi_info          — user wants the DEFINITION, FORMULA, or EXPLANATION of a KPI
+                      e.g. "what is publish rate?", "how is CEF calculated?",
+                           "explain editorial yield", "what does drop-off mean?",
+                           "what is the Mix Health Index?", "how is Gini coefficient calculated?",
+                           "which tab shows CEF?", "what KPIs are in the funnel tab?"
+- hybrid            — user wants BOTH explanation AND actual data
+                      e.g. "explain publish rate and show me which channels are low",
+                           "what is CEF and show me the trend"
+
+### Other intents:
 - out_of_scope      — unrelated to Frammer analytics
 - unsafe            — contains destructive SQL keywords (DROP, DELETE, etc.)
+
+## HOW TO CLASSIFY kpi_info vs kpi_simple
+- "what IS publish rate?" / "how IS it calculated?" → kpi_info  (asking for definition)
+- "what IS the publish rate?" / "show me the publish rate" → kpi_simple  (asking for the number)
+- "explain CEF" / "what does CEF mean?" → kpi_info
+- "show CEF by month" / "what is our CEF this month?" → trends / kpi_simple
+
+Key signal: if the user is asking for the MEANING or FORMULA of a KPI → kpi_info.
+If the user wants the actual DATA VALUE → SQL-based intent.
 
 ## SAFETY RULES
 - If the question contains DROP, DELETE, UPDATE, INSERT, TRUNCATE, ALTER → intent=unsafe, is_safe=false
@@ -42,7 +63,7 @@ definitions from the knowledge base. USE THEM to validate your classification.
 After using your tools to gather information, provide your final answer as a JSON object:
 
 {
-  "intent": "<one of the 11 intent categories>",
+  "intent": "<one of the 13 intent categories above>",
   "intent_confidence": <0.0 to 1.0>,
   "is_safe": <true or false>,
   "is_answerable": <true or false>,

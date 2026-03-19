@@ -3,6 +3,9 @@ retriever.py
 ------------
 ChromaDB retrieval layer for the Frammer AI NL-to-SQL pipeline.
 Used by all agents to fetch relevant context before SQL generation.
+
+NEW: retrieve_kpi_knowledge() — retrieves KPI definitions, formulas,
+     and tab context for the RAG (kpi_info / hybrid) path.
 """
 
 import os
@@ -13,11 +16,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-# retriever.py lives in backend/RAG/
-# chroma_db lives in backend/data/chroma_db
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))   # backend/RAG/
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))   # backend/RAG/
 BACKEND_DIR = os.path.dirname(BASE_DIR)                    # backend/
-CHROMA_DIR = os.path.join(BACKEND_DIR, "data", "chroma_db")
+CHROMA_DIR  = os.path.join(BACKEND_DIR, "data", "chroma_db")
 
 # ── Embedding function (same model used in knowledge_base.py) ────────────────
 EMBEDDING_FN = SentenceTransformerEmbeddingFunction(
@@ -45,87 +46,99 @@ def get_collection(name: str):
     return _collections[name]
 
 
-# ── Core retrieval functions ──────────────────────────────────────────────────
+# ── Existing retrieval functions ──────────────────────────────────────────────
 
 def retrieve_metrics(query: str, top_k: int = 6) -> list[dict]:
-    """
-    Retrieve top_k most relevant metrics for a natural language query.
-    Used by: Schema Linker
-    """
+    """Retrieve top_k most relevant metrics. Used by: Schema Linker."""
     collection = get_collection("metrics")
     results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
+        query_texts=[query], n_results=top_k,
         include=["documents", "metadatas", "distances"]
     )
     return _format_results(results, top_k)
 
 
 def retrieve_dimensions(query: str, top_k: int = 6) -> list[dict]:
-    """
-    Retrieve top_k most relevant dimensions for a natural language query.
-    Used by: Schema Linker
-    """
+    """Retrieve top_k most relevant dimensions. Used by: Schema Linker."""
     collection = get_collection("dimensions")
     results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
+        query_texts=[query], n_results=top_k,
         include=["documents", "metadatas", "distances"]
     )
     return _format_results(results, top_k)
 
 
 def retrieve_few_shots(query: str, top_k: int = 8) -> list[dict]:
-    """
-    Retrieve top_k most similar few-shot NL->SQL examples.
-    Used by: SQL Generator
-    """
+    """Retrieve top_k most similar few-shot NL->SQL examples. Used by: SQL Generator."""
     collection = get_collection("few_shots")
     results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
+        query_texts=[query], n_results=top_k,
         include=["documents", "metadatas", "distances"]
     )
     return _format_results(results, top_k)
 
 
 def retrieve_schema(query: str, top_k: int = 6) -> list[dict]:
-    """
-    Retrieve top_k most relevant schema/table docs for a query.
-    Used by: SQL Generator, SQL Validator
-    """
+    """Retrieve top_k most relevant schema/table docs. Used by: SQL Generator, SQL Validator."""
     collection = get_collection("schema")
     results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
+        query_texts=[query], n_results=top_k,
         include=["documents", "metadatas", "distances"]
     )
     return _format_results(results, top_k)
 
 
 def retrieve_jargon(query: str, top_k: int = 3) -> list[dict]:
-    """
-    Retrieve top_k most relevant business jargon / glossary definitions.
-    Used by: Intent Agent, SQL Generator (to understand business terms).
-    """
+    """Retrieve top_k business jargon definitions. Used by: Intent Agent, SQL Generator."""
     try:
         collection = get_collection("business_jargon")
+        results = collection.query(
+            query_texts=[query], n_results=top_k,
+            include=["documents", "metadatas", "distances"]
+        )
+        return _format_results(results, top_k)
+    except Exception:
+        return []
+
+
+# ── NEW: KPI Knowledge Retrieval ─────────────────────────────────────────────
+
+def retrieve_kpi_knowledge(query: str, top_k: int = 5) -> list[dict]:
+    """
+    Retrieve top_k most relevant KPI definitions and tab context from the
+    kpi_knowledge ChromaDB collection.
+
+    Returns both 'kpi' doc_type entries (individual KPI definitions) and
+    'tab' doc_type entries (which tab to find a KPI in).
+
+    Used by: orchestrator kpi_rag node → insight_generator_agent for RAG answers.
+
+    Args:
+        query: user's natural language question about a KPI
+        top_k: number of documents to retrieve (default 5)
+
+    Returns:
+        list of dicts with keys: text, metadata, distance, score
+        metadata contains: doc_type, kpi_id/tab_id, name, formula,
+                           sql_hint, tab, description, synonyms, etc.
+    """
+    try:
+        collection = get_collection("kpi_knowledge")
         results = collection.query(
             query_texts=[query],
             n_results=top_k,
             include=["documents", "metadatas", "distances"]
         )
         return _format_results(results, top_k)
-    except Exception:
-        # Collection may not exist yet if load_jargon_data.py hasn't been run
+    except Exception as e:
+        print(f"  ⚠ KPI knowledge retrieval failed: {e}")
         return []
 
 
 def retrieve_all_context(query: str) -> dict:
     """
-    Master retrieval function — fetches all 4 collections at once.
+    Master retrieval function — fetches all collections at once.
     Returns a single context dict used by the orchestrator.
-    The actual counts will vary based on relevance.
     """
     return {
         "metrics":    retrieve_metrics(query,    top_k=4),
@@ -138,15 +151,14 @@ def retrieve_all_context(query: str) -> dict:
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-MIN_SCORE     = 0.65  # Higher threshold for bge-small-en-v1.5
-SCORE_GAP_MAX = 0.04  # Stricter gap to ensure only highly similar items are kept
+MIN_SCORE     = 0.65
+SCORE_GAP_MAX = 0.04
 
 def _format_results(results: dict, top_k: int) -> list[dict]:
-    """Flatten ChromaDB results into a clean list of dicts.
+    """
+    Flatten ChromaDB results into a clean list of dicts.
     Uses 1/(1+distance) for safe similarity conversion.
-    Implements a dynamic cutoff:
-    1. Must exceed MIN_SCORE.
-    2. Must be within SCORE_GAP_MAX of the best result (if many results).
+    Dynamic cutoff: must exceed MIN_SCORE and be within SCORE_GAP_MAX of best result.
     """
     output = []
     docs      = results.get("documents", [[]])[0]
@@ -165,12 +177,9 @@ def _format_results(results: dict, top_k: int) -> list[dict]:
         if i == 0:
             best_score = score
 
-        # 1. Skip if below absolute min
         if score < MIN_SCORE:
             continue
-            
-        # 2. Skip if it's a huge drop in quality compared to the top hit
-        # This makes the list dynamic: if only 2 items are great, it only returns 2.
+
         if best_score and (best_score - score) > SCORE_GAP_MAX and i > 1:
             break
 
@@ -186,7 +195,7 @@ def _format_results(results: dict, top_k: int) -> list[dict]:
 def format_context_for_prompt(context: dict) -> str:
     """
     Convert retrieved context dict into a clean string
-    ready to be injected into a Gemini prompt.
+    ready to be injected into a prompt.
     """
     lines = []
 
@@ -225,33 +234,57 @@ def format_context_for_prompt(context: dict) -> str:
     return "\n".join(lines)
 
 
+def format_kpi_context_for_prompt(kpi_results: list[dict]) -> str:
+    """
+    Format retrieved KPI knowledge into a clean string for the
+    insight_generator_agent RAG answer prompt.
+    Separates KPI definitions from tab context.
+    """
+    lines = []
+
+    kpi_entries = [r for r in kpi_results if r["metadata"].get("doc_type") == "kpi"]
+    tab_entries = [r for r in kpi_results if r["metadata"].get("doc_type") == "tab"]
+
+    if kpi_entries:
+        lines.append("=== KPI DEFINITIONS ===")
+        for r in kpi_entries:
+            m = r["metadata"]
+            lines.append(f"\nKPI: {m.get('name', '')}")
+            lines.append(f"  Description : {m.get('description', '')}")
+            lines.append(f"  Formula     : {m.get('formula', '')}")
+            lines.append(f"  Unit        : {m.get('unit', '')}")
+            lines.append(f"  Tab         : {m.get('tab', '')}")
+            if m.get("sql_hint"):
+                lines.append(f"  SQL Hint    : {m.get('sql_hint', '')}")
+            if m.get("synonyms"):
+                lines.append(f"  Also called : {m['synonyms'].replace('|', ', ')}")
+
+    if tab_entries:
+        lines.append("\n=== TAB CONTEXT ===")
+        for r in tab_entries:
+            m = r["metadata"]
+            lines.append(f"\nTab: {m.get('tab_name', '')} ({m.get('tab_id', '')})")
+            lines.append(f"  Purpose: {m.get('purpose', '')}")
+
+    return "\n".join(lines)
+
+
 # ── Quick test ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    test_query = "Which channels have the biggest drop-off between processed and published?"
+    test_query = "What is publish rate and how is it calculated?"
 
     print(f"Test query: {test_query}\n")
     print("=" * 60)
 
-    context = retrieve_all_context(test_query)
-
-    print(f"Metrics retrieved    : {len(context['metrics'])}")
-    for m in context["metrics"]:
-        print(f"  → {m['text'][:80]}... (score: {m['score']})")
-
-    print(f"\nDimensions retrieved : {len(context['dimensions'])}")
-    for d in context["dimensions"]:
-        print(f"  → {d['text'][:80]}... (score: {d['score']})")
-
-    print(f"\nFew-shots retrieved  : {len(context['few_shots'])}")
-    for f in context["few_shots"]:
-        print(f"  → {f['text'][:80]}... (score: {f['score']})")
-
-    print(f"\nSchema retrieved     : {len(context['schema'])}")
-    for s in context["schema"]:
-        print(f"  → {s['text'][:80]}... (score: {s['score']})")
+    kpi_results = retrieve_kpi_knowledge(test_query, top_k=5)
+    print(f"KPI docs retrieved: {len(kpi_results)}")
+    for r in kpi_results:
+        doc_type = r["metadata"].get("doc_type", "?")
+        name = r["metadata"].get("name", r["metadata"].get("tab_name", "?"))
+        print(f"  [{doc_type}] {name} (score: {r['score']})")
 
     print("\n" + "=" * 60)
-    print("FORMATTED PROMPT CONTEXT:")
+    print("FORMATTED KPI CONTEXT:")
     print("=" * 60)
-    print(format_context_for_prompt(context))
+    print(format_kpi_context_for_prompt(kpi_results))

@@ -1,0 +1,1881 @@
+[
+    {
+        "id": "kpi_001",
+        "name": "Total Upload Volume",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Total number of videos uploaded in the current month. Top-of-funnel input metric for the entire Frammer AI pipeline.",
+        "formula": "COUNT(videos uploaded in current month)",
+        "sql_hint": "SELECT SUM(\"Total Uploaded\") FROM Fact_Monthly WHERE Month_ID = <current_month_id>",
+        "unit": "videos",
+        "category": "volume",
+        "related_dimensions": [
+            "channel",
+            "user",
+            "month",
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_002",
+            "kpi_009",
+            "kpi_010"
+        ],
+        "synonyms": [
+            "total uploads",
+            "how many uploaded",
+            "upload count",
+            "videos uploaded",
+            "upload volume",
+            "number of uploads",
+            "total video uploads"
+        ],
+        "tags": [
+            "upload",
+            "funnel",
+            "volume",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_002",
+        "name": "AI Content Created",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Total number of AI-generated short-form output clips created from uploaded videos in the current month.",
+        "formula": "COUNT(AI-generated outputs in current month)",
+        "sql_hint": "SELECT SUM(\"Total Created\") FROM Fact_Monthly WHERE Month_ID = <current_month_id>",
+        "unit": "outputs",
+        "category": "volume",
+        "related_dimensions": [
+            "channel",
+            "user",
+            "month",
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_001",
+            "kpi_005",
+            "kpi_014"
+        ],
+        "synonyms": [
+            "outputs created",
+            "AI outputs",
+            "clips created",
+            "content created",
+            "total created",
+            "how many created",
+            "AI generated content",
+            "processed outputs"
+        ],
+        "tags": [
+            "creation",
+            "AI",
+            "volume",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_003",
+        "name": "Total Published Outputs",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Total number of AI-created clips that were successfully published to a platform in the current month.",
+        "formula": "COUNT(published outputs in current month)",
+        "sql_hint": "SELECT SUM(\"Total Published\") FROM Fact_Monthly WHERE Month_ID = <current_month_id>",
+        "unit": "outputs",
+        "category": "volume",
+        "related_dimensions": [
+            "channel",
+            "user",
+            "month",
+            "platform",
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_002",
+            "kpi_004",
+            "kpi_009"
+        ],
+        "synonyms": [
+            "published count",
+            "total published",
+            "clips published",
+            "how many published",
+            "videos live",
+            "published videos",
+            "published outputs",
+            "clips went live"
+        ],
+        "tags": [
+            "publishing",
+            "volume",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_004",
+        "name": "Editorial Yield %",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Percentage of AI-created content that gets published. Measures editorial team efficiency — how much of what AI generates actually goes live.",
+        "formula": "Published / Created * 100",
+        "sql_hint": "SELECT (SUM(\"Total Published\") * 100.0 / NULLIF(SUM(\"Total Created\"), 0)) FROM Fact_Monthly",
+        "unit": "%",
+        "category": "efficiency",
+        "related_dimensions": [
+            "month",
+            "channel",
+            "user"
+        ],
+        "related_kpi_ids": [
+            "kpi_002",
+            "kpi_003",
+            "kpi_006"
+        ],
+        "synonyms": [
+            "editorial yield",
+            "yield rate",
+            "publish yield",
+            "editorial efficiency",
+            "how much gets published",
+            "creation to publish rate"
+        ],
+        "tags": [
+            "efficiency",
+            "editorial",
+            "publishing",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_005",
+        "name": "Content Expansion Factor",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Multiplier showing how many AI outputs are generated per uploaded video. A CEF of 3x means each upload generates 3 clips. High CEF signals strong AI processing utilisation.",
+        "formula": "Total Created / Total Uploaded",
+        "sql_hint": "SELECT (SUM(\"Total Created\") * 1.0 / NULLIF(SUM(\"Total Uploaded\"), 0)) FROM Fact_Monthly",
+        "unit": "x multiplier",
+        "category": "efficiency",
+        "related_dimensions": [
+            "month",
+            "input_type",
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_001",
+            "kpi_002",
+            "kpi_014",
+            "kpi_015"
+        ],
+        "synonyms": [
+            "CEF",
+            "content expansion",
+            "expansion factor",
+            "multiplier",
+            "AI leverage",
+            "outputs per upload",
+            "clips per video",
+            "how many clips per upload"
+        ],
+        "tags": [
+            "CEF",
+            "expansion",
+            "efficiency",
+            "AI leverage",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_006",
+        "name": "Orphan Content Rate",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Percentage of AI-created content that was never published. High orphan rate means wasted AI processing or editorial bottlenecks.",
+        "formula": "(Created - Published) / Created * 100",
+        "sql_hint": "SELECT ((SUM(\"Total Created\") - SUM(\"Total Published\")) * 100.0 / NULLIF(SUM(\"Total Created\"), 0)) FROM Fact_Monthly",
+        "unit": "%",
+        "category": "efficiency",
+        "related_dimensions": [
+            "month",
+            "channel",
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_002",
+            "kpi_003",
+            "kpi_012"
+        ],
+        "synonyms": [
+            "orphan rate",
+            "unpublished rate",
+            "waste rate",
+            "content waste",
+            "orphan content",
+            "never published rate",
+            "unused content",
+            "unpublished content percentage"
+        ],
+        "tags": [
+            "orphan",
+            "waste",
+            "efficiency",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_007",
+        "name": "Active Users",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Number of registered users who have uploaded at least one video. Active users have Uploaded Count > 0.",
+        "formula": "COUNT(DISTINCT User_ID) WHERE Uploaded Count > 0",
+        "sql_hint": "SELECT COUNT(DISTINCT User_ID) FROM Fact_User_Summary WHERE \"Uploaded Count\" > 0",
+        "unit": "users",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team",
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_008",
+            "kpi_020",
+            "kpi_017"
+        ],
+        "synonyms": [
+            "active users",
+            "how many active users",
+            "users who uploaded",
+            "engaged users",
+            "active uploaders",
+            "number of active users"
+        ],
+        "tags": [
+            "users",
+            "engagement",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_008",
+        "name": "Avg Uploads per Active User",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Average number of videos each active user uploads. Indicates per-user productivity.",
+        "formula": "Total Uploaded / Active Users",
+        "sql_hint": "SELECT SUM(\"Uploaded Count\") * 1.0 / NULLIF(COUNT(DISTINCT CASE WHEN \"Uploaded Count\" > 0 THEN User_ID END), 0) FROM Fact_User_Summary",
+        "unit": "uploads/user",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_007",
+            "kpi_030"
+        ],
+        "synonyms": [
+            "avg uploads per user",
+            "average uploads",
+            "uploads per user",
+            "per user upload rate",
+            "user upload average"
+        ],
+        "tags": [
+            "users",
+            "uploads",
+            "productivity",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_009",
+        "name": "Publish Rate (Funnel)",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Overall funnel conversion rate — percentage of uploaded videos that end up published. Measures full pipeline efficiency from upload to live content.",
+        "formula": "Total Published / Total Uploaded * 100",
+        "sql_hint": "SELECT (SUM(\"Total Published\") * 100.0 / NULLIF(SUM(\"Total Uploaded\"), 0)) FROM Fact_Monthly",
+        "unit": "%",
+        "category": "funnel",
+        "related_dimensions": [
+            "month",
+            "channel",
+            "user",
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_001",
+            "kpi_003",
+            "kpi_038"
+        ],
+        "synonyms": [
+            "publish rate",
+            "publishing rate",
+            "overall publish rate",
+            "funnel conversion",
+            "upload to publish rate",
+            "end to end conversion",
+            "what percentage is published",
+            "how much gets published"
+        ],
+        "tags": [
+            "publish rate",
+            "funnel",
+            "conversion",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_010",
+        "name": "MoM Upload Momentum",
+        "tab": "Executive Summary",
+        "tab_id": "tab1",
+        "description": "Month-over-month percentage change in total upload volume. Positive momentum = uploads growing vs previous month.",
+        "formula": "(Current Month Uploads - Previous Month Uploads) / Previous Month Uploads * 100",
+        "sql_hint": "Compare current vs previous Month_ID in Fact_Monthly for Total Uploaded",
+        "unit": "%",
+        "category": "trend",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_001"
+        ],
+        "synonyms": [
+            "MoM upload",
+            "month over month",
+            "upload momentum",
+            "upload growth",
+            "upload trend",
+            "month on month uploads",
+            "upload change"
+        ],
+        "tags": [
+            "MoM",
+            "trend",
+            "momentum",
+            "executive"
+        ]
+    },
+    {
+        "id": "kpi_011",
+        "name": "Monthly Publish Rate",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Monthly publish rate = Total Published / Total Created per month. Tracks editorial efficiency trend over time.",
+        "formula": "Total Published / Total Created * 100 (per month)",
+        "sql_hint": "SELECT d.Month_Name, (f.\"Total Published\" * 100.0 / NULLIF(f.\"Total Created\", 0)) FROM Fact_Monthly f JOIN Dim_Month d ON f.Month_ID = d.Month_ID ORDER BY f.Month_ID",
+        "unit": "%",
+        "category": "trend",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_004",
+            "kpi_009",
+            "kpi_012"
+        ],
+        "synonyms": [
+            "monthly publish rate",
+            "publish rate over time",
+            "publish rate trend",
+            "monthly conversion",
+            "month by month publish rate"
+        ],
+        "tags": [
+            "publish rate",
+            "monthly",
+            "trend",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_012",
+        "name": "Drop-off Count",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Absolute number of content pieces created by AI but not published per month. Represents pipeline leakage volume.",
+        "formula": "Total Created - Total Published",
+        "sql_hint": "SELECT d.Month_Name, (f.\"Total Created\" - f.\"Total Published\") AS Drop_off FROM Fact_Monthly f JOIN Dim_Month d ON f.Month_ID = d.Month_ID",
+        "unit": "videos",
+        "category": "funnel",
+        "related_dimensions": [
+            "month",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_002",
+            "kpi_003",
+            "kpi_006"
+        ],
+        "synonyms": [
+            "drop off",
+            "drop-off",
+            "content dropoff",
+            "unpublished count",
+            "pipeline loss",
+            "wastage count",
+            "how many dropped",
+            "content not published",
+            "monthly dropoff"
+        ],
+        "tags": [
+            "drop-off",
+            "funnel",
+            "wastage",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_013",
+        "name": "Avg Created Duration",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Average duration in minutes of AI-created content per unit per month.",
+        "formula": "Total Created Duration (sec) / Total Created / 60",
+        "sql_hint": "Compute from Total Created Duration_sec / Total Created columns in Fact_Monthly",
+        "unit": "minutes",
+        "category": "duration",
+        "related_dimensions": [
+            "month",
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_018"
+        ],
+        "synonyms": [
+            "avg created duration",
+            "average clip duration",
+            "mean clip length",
+            "average created video length",
+            "avg output duration"
+        ],
+        "tags": [
+            "duration",
+            "created",
+            "average",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_014",
+        "name": "Content Expansion Factor (Monthly)",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Monthly CEF trend — outputs generated per upload each month. Tracks AI leverage over time. Peak CEF = maximum AI utilisation.",
+        "formula": "Total Created / Total Uploaded (per month)",
+        "sql_hint": "SELECT d.Month_Name, (f.\"Total Created\" * 1.0 / NULLIF(f.\"Total Uploaded\", 0)) AS CEF FROM Fact_Monthly f JOIN Dim_Month d ON f.Month_ID = d.Month_ID ORDER BY f.Month_ID",
+        "unit": "x multiplier",
+        "category": "efficiency",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_005",
+            "kpi_015",
+            "kpi_016"
+        ],
+        "synonyms": [
+            "monthly CEF",
+            "CEF trend",
+            "monthly content expansion",
+            "expansion over time",
+            "monthly multiplier",
+            "monthly AI leverage"
+        ],
+        "tags": [
+            "CEF",
+            "monthly",
+            "trend",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_015",
+        "name": "CEF by Input Type",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "CEF broken down by input type (e.g. Live, VOD, Podcast). Shows which source content type generates the most outputs per upload.",
+        "formula": "Created Count / Uploaded Count (per Input Type)",
+        "sql_hint": "SELECT d.Input_Type_Name, (f.\"Created Count\" * 1.0 / NULLIF(f.\"Uploaded Count\", 0)) AS CEF FROM Fact_Input_Type f JOIN Dim_Input_Type d ON f.InputType_ID = d.InputType_ID",
+        "unit": "x multiplier",
+        "category": "efficiency",
+        "related_dimensions": [
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_005",
+            "kpi_014"
+        ],
+        "synonyms": [
+            "CEF by input",
+            "expansion by input type",
+            "input type efficiency",
+            "which input type has best CEF",
+            "content type expansion factor"
+        ],
+        "tags": [
+            "CEF",
+            "input type",
+            "efficiency",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_016",
+        "name": "CEF by Output Type",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "CEF by output type (Reels, Shorts, Key Moments, Chapters). Shows which output format is generated most per upload.",
+        "formula": "Created Count / Uploaded Count (per Output Type)",
+        "sql_hint": "SELECT d.Output_Type_Name, (f.\"Created Count\" * 1.0 / NULLIF(f.\"Uploaded Count\", 0)) AS CEF FROM Fact_Output_Type f JOIN Dim_Output_Type d ON f.OutputType_ID = d.OutputType_ID",
+        "unit": "x multiplier",
+        "category": "efficiency",
+        "related_dimensions": [
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_005",
+            "kpi_014"
+        ],
+        "synonyms": [
+            "CEF by output",
+            "expansion by output type",
+            "output format efficiency",
+            "which output type has best CEF",
+            "format expansion factor",
+            "reels vs shorts CEF"
+        ],
+        "tags": [
+            "CEF",
+            "output type",
+            "efficiency",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_017",
+        "name": "Productivity Index",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Monthly published outputs divided by active users. Measures team publishing productivity per user each month.",
+        "formula": "Total Published / Active Users (per month)",
+        "sql_hint": "SELECT d.Month_Name, (f.\"Total Published\" * 1.0 / (SELECT COUNT(DISTINCT User_ID) FROM Fact_User_Summary WHERE \"Uploaded Count\" > 0)) FROM Fact_Monthly f JOIN Dim_Month d ON f.Month_ID = d.Month_ID",
+        "unit": "published/user",
+        "category": "user",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_007",
+            "kpi_003"
+        ],
+        "synonyms": [
+            "productivity index",
+            "user productivity",
+            "published per user",
+            "output per user",
+            "user efficiency",
+            "how productive are users"
+        ],
+        "tags": [
+            "productivity",
+            "users",
+            "monthly",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_018",
+        "name": "Duration Footprint",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Total hours of content at each pipeline stage — uploaded, created, published. Shows the volume of content processed.",
+        "formula": "Total Duration (sec) / 3600 for Uploaded, Created, Published",
+        "sql_hint": "Compute from Total Uploaded Duration_sec, Total Created Duration_sec, Total Published Duration_sec in Fact_Monthly divided by 3600",
+        "unit": "hours",
+        "category": "duration",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_013"
+        ],
+        "synonyms": [
+            "duration footprint",
+            "total duration",
+            "hours of content",
+            "content hours",
+            "pipeline duration",
+            "how many hours of content",
+            "total content hours"
+        ],
+        "tags": [
+            "duration",
+            "footprint",
+            "hours",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_019",
+        "name": "Metadata Health Score",
+        "tab": "Usage & Trends",
+        "tab_id": "tab2",
+        "description": "Data quality score measuring completeness of metadata on videos: Platform Tagged, URL Provided, Valid User Assigned, Has Headline. Target 100%.",
+        "formula": "Average completeness: (non-null Platform_ID%), (non-null URL%), (valid User_ID%), (non-null Headline%) * 100",
+        "sql_hint": "Computed from Fact_Video: NULL rates for Platform_ID, Published URL, User_ID, Headline",
+        "unit": "%",
+        "category": "data_quality",
+        "related_dimensions": [
+            "platform",
+            "user"
+        ],
+        "related_kpi_ids": [],
+        "synonyms": [
+            "metadata health",
+            "data quality score",
+            "metadata completeness",
+            "data health",
+            "system health score",
+            "metadata hygiene",
+            "how complete is the data"
+        ],
+        "tags": [
+            "metadata",
+            "data quality",
+            "health score",
+            "usage"
+        ]
+    },
+    {
+        "id": "kpi_020",
+        "name": "Active User Ratio",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Percentage of registered users who have uploaded at least once. Indicates platform adoption breadth.",
+        "formula": "Users with Uploaded Count > 0 / Total Users * 100",
+        "sql_hint": "SELECT (COUNT(CASE WHEN \"Uploaded Count\" > 0 THEN 1 END) * 100.0 / COUNT(*)) FROM Fact_User_Summary",
+        "unit": "%",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_007",
+            "kpi_022"
+        ],
+        "synonyms": [
+            "active user ratio",
+            "user activation rate",
+            "active percentage",
+            "what percent of users are active",
+            "how many users are active"
+        ],
+        "tags": [
+            "users",
+            "activation",
+            "ratio",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_021",
+        "name": "Creation Efficiency Ratio",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Ratio of AI-created content to uploaded videos as percentage.",
+        "formula": "Total Created / Total Uploaded * 100",
+        "sql_hint": "SELECT (SUM(\"Total Created\") * 100.0 / NULLIF(SUM(\"Total Uploaded\"), 0)) FROM Fact_Monthly",
+        "unit": "%",
+        "category": "efficiency",
+        "related_dimensions": [
+            "channel",
+            "user"
+        ],
+        "related_kpi_ids": [
+            "kpi_005"
+        ],
+        "synonyms": [
+            "creation efficiency",
+            "creation ratio",
+            "upload to creation ratio",
+            "how efficient is content creation"
+        ],
+        "tags": [
+            "efficiency",
+            "creation",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_022",
+        "name": "User Repeatability Rate",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Percentage of users who uploaded more than once. Measures platform stickiness and recurring engagement.",
+        "formula": "Users with Uploaded Count > 1 / Total Users * 100",
+        "sql_hint": "SELECT (COUNT(CASE WHEN \"Uploaded Count\" > 1 THEN 1 END) * 100.0 / COUNT(*)) FROM Fact_User_Summary",
+        "unit": "%",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_020",
+            "kpi_035"
+        ],
+        "synonyms": [
+            "repeatability rate",
+            "repeat users",
+            "recurring users",
+            "user stickiness",
+            "returning users",
+            "how many users uploaded more than once"
+        ],
+        "tags": [
+            "users",
+            "retention",
+            "repeatability",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_023",
+        "name": "Top 10% User Contribution",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Percentage of total published content by the top 10% of users. Indicates power user dependency.",
+        "formula": "Top 10% users Published Count / Total Published * 100",
+        "sql_hint": "Rank users by Published Count desc in Fact_User_Summary, sum top 10% vs total",
+        "unit": "%",
+        "category": "user",
+        "related_dimensions": [
+            "user",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_035"
+        ],
+        "synonyms": [
+            "top user contribution",
+            "power user share",
+            "top 10 percent users",
+            "power user concentration",
+            "elite user contribution"
+        ],
+        "tags": [
+            "users",
+            "power users",
+            "contribution",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_024",
+        "name": "New Client Activation Rate",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Percentage of new users who upload within 7 days of registration. Measures onboarding effectiveness.",
+        "formula": "Users who uploaded within 7 days of joining / Total New Users * 100",
+        "sql_hint": "Dim_User join Fact_User_Summary — compare registration date vs first upload date within 7 days",
+        "unit": "%",
+        "category": "user",
+        "related_dimensions": [
+            "month",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_025"
+        ],
+        "synonyms": [
+            "activation rate",
+            "new user activation",
+            "client activation",
+            "onboarding rate",
+            "first upload within 7 days"
+        ],
+        "tags": [
+            "activation",
+            "onboarding",
+            "new users",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_025",
+        "name": "User Growth Rate (MoM)",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Month-over-month percentage change in new user registrations.",
+        "formula": "(Current Month New Users - Previous Month New Users) / Previous Month New Users * 100",
+        "sql_hint": "Dim_User registration dates grouped by month",
+        "unit": "%",
+        "category": "trend",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_024"
+        ],
+        "synonyms": [
+            "user growth rate",
+            "user growth",
+            "MoM user growth",
+            "new user growth",
+            "how fast are users growing"
+        ],
+        "tags": [
+            "growth",
+            "users",
+            "MoM",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_026",
+        "name": "Language Diversity Index",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Upload share per language as percentage. Measures linguistic diversity of content on the platform.",
+        "formula": "Uploaded Count per Language / Total Uploads * 100",
+        "sql_hint": "SELECT d.Language_Name, (f.\"Uploaded Count\" * 100.0 / SUM(f.\"Uploaded Count\") OVER()) FROM Fact_Language f JOIN Dim_Language d ON f.Language_ID = d.Language_ID",
+        "unit": "%",
+        "category": "language",
+        "related_dimensions": [
+            "language",
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_036"
+        ],
+        "synonyms": [
+            "language diversity",
+            "language breakdown",
+            "upload by language",
+            "language distribution",
+            "content by language",
+            "which language is most uploaded"
+        ],
+        "tags": [
+            "language",
+            "diversity",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_027",
+        "name": "Platform Dominance",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Total published count per platform. Shows which platform receives the most published content.",
+        "formula": "SUM(Published Count) per Platform_Name",
+        "sql_hint": "SELECT d.Platform_Name, SUM(f.Published_Count) FROM Fact_Channel_Publishing f JOIN Dim_Platform d ON f.Platform_ID = d.Platform_ID GROUP BY d.Platform_Name ORDER BY 2 DESC",
+        "unit": "count",
+        "category": "platform",
+        "related_dimensions": [
+            "platform",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_043",
+            "kpi_046"
+        ],
+        "synonyms": [
+            "platform dominance",
+            "top platform",
+            "platform ranking",
+            "which platform is most used",
+            "platform distribution",
+            "platform publishing volume"
+        ],
+        "tags": [
+            "platform",
+            "publishing",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_028",
+        "name": "Channel Publication Volume",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Total published count per channel. Shows which channels are publishing the most content.",
+        "formula": "SUM(Published Count) per Channel",
+        "sql_hint": "SELECT d.Channel_Name, SUM(f.\"Published Count\") FROM Fact_User_Channel f JOIN Dim_Channel d ON f.Channel_ID = d.Channel_ID GROUP BY d.Channel_Name ORDER BY 2 DESC",
+        "unit": "count",
+        "category": "channel",
+        "related_dimensions": [
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_029",
+            "kpi_044"
+        ],
+        "synonyms": [
+            "channel publication volume",
+            "top channels",
+            "channel publishing",
+            "published by channel",
+            "which channel publishes most"
+        ],
+        "tags": [
+            "channel",
+            "publishing",
+            "volume",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_029",
+        "name": "Channel Contribution Mix",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Total AI-created count per channel. Shows which channels generate the most content.",
+        "formula": "SUM(Created Count) per Channel",
+        "sql_hint": "SELECT d.Channel_Name, SUM(f.\"Created Count\") FROM Fact_User_Channel f JOIN Dim_Channel d ON f.Channel_ID = d.Channel_ID GROUP BY d.Channel_Name",
+        "unit": "count",
+        "category": "channel",
+        "related_dimensions": [
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_028"
+        ],
+        "synonyms": [
+            "channel contribution",
+            "channel creation mix",
+            "created by channel",
+            "which channel creates most"
+        ],
+        "tags": [
+            "channel",
+            "creation",
+            "mix",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_030",
+        "name": "Avg Uploads per User",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Average uploads per unique user all-time.",
+        "formula": "Total Uploaded Count / Total Unique Users",
+        "sql_hint": "SELECT SUM(\"Uploaded Count\") * 1.0 / COUNT(DISTINCT User_ID) FROM Fact_User_Summary",
+        "unit": "uploads/user",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_008",
+            "kpi_031"
+        ],
+        "synonyms": [
+            "avg uploads per user",
+            "average uploads per user",
+            "upload average",
+            "per user uploads",
+            "user upload rate"
+        ],
+        "tags": [
+            "users",
+            "uploads",
+            "average",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_031",
+        "name": "Avg Clips Created per User",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Average AI-created clips per unique user.",
+        "formula": "Total Created Count / Total Unique Users",
+        "sql_hint": "SELECT SUM(\"Created Count\") * 1.0 / COUNT(DISTINCT User_ID) FROM Fact_User_Summary",
+        "unit": "clips/user",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_030",
+            "kpi_032"
+        ],
+        "synonyms": [
+            "avg clips per user",
+            "average created per user",
+            "clips per user",
+            "AI clips per user"
+        ],
+        "tags": [
+            "users",
+            "clips",
+            "average",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_032",
+        "name": "Avg Publications per User",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Average published outputs per unique user.",
+        "formula": "Total Published Count / Total Unique Users",
+        "sql_hint": "SELECT SUM(\"Published Count\") * 1.0 / COUNT(DISTINCT User_ID) FROM Fact_User_Summary",
+        "unit": "publications/user",
+        "category": "user",
+        "related_dimensions": [
+            "channel",
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_031",
+            "kpi_017"
+        ],
+        "synonyms": [
+            "avg publications per user",
+            "average published per user",
+            "publications per user",
+            "publishing per user"
+        ],
+        "tags": [
+            "users",
+            "publications",
+            "average",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_033",
+        "name": "Avg Raw Duration per User",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Average uploaded video duration in minutes per user. Shows how much raw content each user brings in.",
+        "formula": "SUM(Uploaded Duration mins) / Total Users",
+        "sql_hint": "SELECT SUM(\"Uploaded Duration (hh:mm:ss)_sec\") / 60.0 / COUNT(DISTINCT User_ID) FROM Fact_User_Summary",
+        "unit": "minutes/user",
+        "category": "duration",
+        "related_dimensions": [
+            "user",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_034"
+        ],
+        "synonyms": [
+            "avg raw duration per user",
+            "average upload duration per user",
+            "raw duration per user"
+        ],
+        "tags": [
+            "duration",
+            "users",
+            "average",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_034",
+        "name": "Avg Published Duration per User",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Average published content duration in minutes per user.",
+        "formula": "SUM(Published Duration mins) / Total Users",
+        "sql_hint": "SELECT SUM(\"Published Duration (hh:mm:ss)_sec\") / 60.0 / COUNT(DISTINCT User_ID) FROM Fact_User_Summary",
+        "unit": "minutes/user",
+        "category": "duration",
+        "related_dimensions": [
+            "user",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_033"
+        ],
+        "synonyms": [
+            "avg published duration per user",
+            "average published video length per user",
+            "published duration per user"
+        ],
+        "tags": [
+            "duration",
+            "users",
+            "published",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_035",
+        "name": "User Loyalty Tiers",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "User segmentation by upload frequency: One-Timer (1), Regular (2-10), Active (11-50), Frequent (51-100), Power User (100+).",
+        "formula": "Bucket by Uploaded Count: 1=One-Timer, 2-10=Regular, 11-50=Active, 51-100=Frequent, 100+=Power User",
+        "sql_hint": "SELECT CASE WHEN \"Uploaded Count\"=1 THEN 'One-Timer' WHEN \"Uploaded Count\"<=10 THEN 'Regular' WHEN \"Uploaded Count\"<=50 THEN 'Active' WHEN \"Uploaded Count\"<=100 THEN 'Frequent' ELSE 'Power User' END AS Tier, COUNT(*) FROM Fact_User_Summary GROUP BY Tier",
+        "unit": "segments",
+        "category": "user",
+        "related_dimensions": [
+            "user",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_022",
+            "kpi_023"
+        ],
+        "synonyms": [
+            "user loyalty tiers",
+            "user segments",
+            "user buckets",
+            "power users",
+            "one timers",
+            "user classification",
+            "user tiers"
+        ],
+        "tags": [
+            "users",
+            "loyalty",
+            "segmentation",
+            "tiers",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_036",
+        "name": "Language Diversity per Platform",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Upload share per language per platform as percentage. Measures linguistic diversity on each publishing platform.",
+        "formula": "Uploads per Language per Platform / Total Platform Uploads * 100",
+        "sql_hint": "Fact_Video joined with Dim_Platform and Dim_Language, grouped by Platform_Name and Language_Name",
+        "unit": "%",
+        "category": "language",
+        "related_dimensions": [
+            "language",
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_026",
+            "kpi_027"
+        ],
+        "synonyms": [
+            "language per platform",
+            "platform language mix",
+            "language distribution by platform",
+            "which languages on which platform"
+        ],
+        "tags": [
+            "language",
+            "platform",
+            "diversity",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_037",
+        "name": "Channel x User Drill-down",
+        "tab": "Client / Channel / User Analysis",
+        "tab_id": "tab3",
+        "description": "Uploaded, Created, Published counts per channel per user. Used for deep individual performance analysis.",
+        "formula": "Uploaded/Created/Published Count per Channel per User",
+        "sql_hint": "SELECT d.Channel_Name, du.User_Name, f.\"Uploaded Count\", f.\"Created Count\", f.\"Published Count\" FROM Fact_User_Channel f JOIN Dim_Channel d ON f.Channel_ID=d.Channel_ID JOIN Dim_User du ON f.User_ID=du.User_ID",
+        "unit": "counts",
+        "category": "channel",
+        "related_dimensions": [
+            "channel",
+            "user"
+        ],
+        "related_kpi_ids": [
+            "kpi_028",
+            "kpi_029"
+        ],
+        "synonyms": [
+            "channel user drill down",
+            "user by channel",
+            "channel user breakdown",
+            "user performance by channel",
+            "per channel per user"
+        ],
+        "tags": [
+            "channel",
+            "user",
+            "drill-down",
+            "channel_analysis"
+        ]
+    },
+    {
+        "id": "kpi_038",
+        "name": "Content Efficiency Index (CEI)",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Percentage of AI-created assets successfully published. Low CEI means leaky pipeline — resources spent on content that never goes live.",
+        "formula": "Total Published Count / Total Created Count * 100",
+        "sql_hint": "SELECT (SUM(\"Published Count\") * 100.0 / NULLIF(SUM(\"Created Count\"), 0)) FROM Fact_Input_Type",
+        "unit": "%",
+        "category": "funnel",
+        "related_dimensions": [
+            "input_type",
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_009",
+            "kpi_039",
+            "kpi_004"
+        ],
+        "synonyms": [
+            "CEI",
+            "content efficiency index",
+            "funnel efficiency",
+            "pipeline efficiency",
+            "content conversion efficiency"
+        ],
+        "tags": [
+            "CEI",
+            "funnel",
+            "efficiency",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_039",
+        "name": "Wastage Rate",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Percentage of AI-processed content never published. Directly measures pipeline waste. Complement of CEI.",
+        "formula": "(Total Created - Total Published) / Total Created * 100",
+        "sql_hint": "SELECT ((SUM(\"Created Count\") - SUM(\"Published Count\")) * 100.0 / NULLIF(SUM(\"Created Count\"), 0)) FROM Fact_Input_Type",
+        "unit": "%",
+        "category": "funnel",
+        "related_dimensions": [
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_038",
+            "kpi_006"
+        ],
+        "synonyms": [
+            "wastage rate",
+            "waste rate",
+            "pipeline waste",
+            "unpublished rate",
+            "content waste",
+            "how much is wasted",
+            "wasted content percentage"
+        ],
+        "tags": [
+            "wastage",
+            "funnel",
+            "efficiency",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_040",
+        "name": "Duration Amplification Ratio",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Ratio of created duration to uploaded duration. Red Zone (<1.0): less output than input. Gray Zone (1.0-2.5): slight surplus. Green Zone (2.5-5.0): high-efficiency repurposing.",
+        "formula": "SUM(Created Duration sec) / SUM(Uploaded Duration sec)",
+        "sql_hint": "SELECT SUM(\"Created Duration (hh:mm:ss)_sec\") * 1.0 / NULLIF(SUM(\"Uploaded Duration (hh:mm:ss)_sec\"), 0) FROM Fact_Input_Type",
+        "unit": "x multiplier",
+        "category": "duration",
+        "related_dimensions": [
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_005",
+            "kpi_018"
+        ],
+        "synonyms": [
+            "duration amplification",
+            "duration ratio",
+            "duration multiplier",
+            "content duration ratio",
+            "how much duration is created per uploaded hour"
+        ],
+        "tags": [
+            "duration",
+            "amplification",
+            "ratio",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_041",
+        "name": "Mix Health Index",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Balance of input content library using Simpson's Diversity Index. Near 100% = healthy diverse mix. Low = over-dependence on one input type (monoculture).",
+        "formula": "1 - SUM(p^2) where p = Published Count per Input Type / Total Published",
+        "sql_hint": "Fact_Input_Type: p = Published Count / SUM(Published Count), score = 1 - SUM(p*p), expressed as percentage",
+        "unit": "% (0-100)",
+        "category": "diversity",
+        "related_dimensions": [
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_042",
+            "kpi_043"
+        ],
+        "synonyms": [
+            "mix health index",
+            "input mix health",
+            "content diversity score",
+            "content mix score",
+            "Simpson diversity input",
+            "input type diversity"
+        ],
+        "tags": [
+            "mix health",
+            "diversity",
+            "Simpson",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_042",
+        "name": "Output Mix Health",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Balance of output format library using Simpson's Diversity Index.",
+        "formula": "1 - SUM(p^2) where p = Published Count per Output Type / Total Published",
+        "sql_hint": "Fact_Output_Type: p = Published Count / SUM(Published Count), score = 1 - SUM(p*p), expressed as percentage",
+        "unit": "% (0-100)",
+        "category": "diversity",
+        "related_dimensions": [
+            "output_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_041",
+            "kpi_043"
+        ],
+        "synonyms": [
+            "output mix health",
+            "output diversity score",
+            "format mix health",
+            "output type diversity",
+            "Simpson diversity output"
+        ],
+        "tags": [
+            "mix health",
+            "diversity",
+            "output type",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_043",
+        "name": "Platform Diversity Index (PDI)",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Omnichannel spread using Shannon Entropy. High PDI = balanced across platforms (omnichannel powerhouse). Low PDI = platform dependency.",
+        "formula": "H = -SUM(p * log(p)) where p = published count per platform / total published",
+        "sql_hint": "Fact_Channel_Publishing grouped by Platform_ID: entropy(platform_counts)",
+        "unit": "entropy score",
+        "category": "diversity",
+        "related_dimensions": [
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_027",
+            "kpi_044"
+        ],
+        "synonyms": [
+            "PDI",
+            "platform diversity index",
+            "platform entropy",
+            "Shannon entropy platform",
+            "platform spread",
+            "omnichannel score",
+            "how diverse is platform distribution"
+        ],
+        "tags": [
+            "PDI",
+            "platform",
+            "diversity",
+            "Shannon entropy",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_044",
+        "name": "Channel Gini Coefficient",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Inequality of publishing across channels via Lorenz Curve. Score near 0 = equal distribution. Score near 1 = extreme concentration on few channels.",
+        "formula": "Gini = (n+1 - 2*SUM(cumsum(sorted_published_count)) / SUM(published_count)) / n",
+        "sql_hint": "Fact_Channel_Publishing grouped by Channel_ID, sorted ascending by Published_Count",
+        "unit": "0-1 score",
+        "category": "diversity",
+        "related_dimensions": [
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_028",
+            "kpi_043"
+        ],
+        "synonyms": [
+            "Gini coefficient",
+            "channel Gini",
+            "channel inequality",
+            "publishing inequality",
+            "how equal is channel distribution"
+        ],
+        "tags": [
+            "Gini",
+            "channel",
+            "inequality",
+            "distribution",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_045",
+        "name": "Avg Publishing Latency",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Average time gap between content creation and publishing in minutes. High latency = editorial delays in the pipeline.",
+        "formula": "(Published Duration sec - Created Duration sec) / Total Published / 60",
+        "sql_hint": "Fact_Monthly: (Total Published Duration_sec - Total Created Duration_sec) / Total Published / 60",
+        "unit": "minutes",
+        "category": "latency",
+        "related_dimensions": [
+            "month",
+            "platform",
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_046",
+            "kpi_047"
+        ],
+        "synonyms": [
+            "publishing latency",
+            "avg latency",
+            "average publishing delay",
+            "time to publish",
+            "editorial delay",
+            "how long to publish"
+        ],
+        "tags": [
+            "latency",
+            "publishing delay",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_046",
+        "name": "Platform Latency",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Published content duration per platform from Fact_Channel_Publishing, used as platform-level publishing latency proxy.",
+        "formula": "Published_Duration per Platform from Fact_Channel_Publishing",
+        "sql_hint": "SELECT d.Platform_Name, SUM(f.Published_Duration) FROM Fact_Channel_Publishing f JOIN Dim_Platform d ON f.Platform_ID=d.Platform_ID GROUP BY d.Platform_Name",
+        "unit": "seconds",
+        "category": "latency",
+        "related_dimensions": [
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_045",
+            "kpi_047"
+        ],
+        "synonyms": [
+            "platform latency",
+            "latency by platform",
+            "publishing delay by platform",
+            "which platform is slowest"
+        ],
+        "tags": [
+            "latency",
+            "platform",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_047",
+        "name": "Latency by Input Type",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Publishing latency per input content type. Shows whether certain source types take longer to publish.",
+        "formula": "Published Duration sec - Created Duration sec per Input Type",
+        "sql_hint": "SELECT d.Input_Type_Name, (f.\"Published Duration (hh:mm:ss)_sec\" - f.\"Created Duration (hh:mm:ss)_sec\") AS Latency FROM Fact_Input_Type f JOIN Dim_Input_Type d ON f.InputType_ID=d.InputType_ID",
+        "unit": "seconds",
+        "category": "latency",
+        "related_dimensions": [
+            "input_type"
+        ],
+        "related_kpi_ids": [
+            "kpi_045",
+            "kpi_046"
+        ],
+        "synonyms": [
+            "latency by input type",
+            "input type latency",
+            "content type publishing delay",
+            "which input type is slowest"
+        ],
+        "tags": [
+            "latency",
+            "input type",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_048",
+        "name": "Consistency Index (CV)",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Coefficient of Variation of monthly published count. CV near 0 = highly consistent. CV > 1.0 = high volatility. Shown as control chart with Stability Zone (Mean ± StdDev).",
+        "formula": "CV = StdDev(Published Count) / Mean(Published Count)",
+        "sql_hint": "Fact_Monthly: published_counts.std() / published_counts.mean()",
+        "unit": "ratio",
+        "category": "consistency",
+        "related_dimensions": [
+            "month"
+        ],
+        "related_kpi_ids": [
+            "kpi_011"
+        ],
+        "synonyms": [
+            "consistency index",
+            "CV",
+            "coefficient of variation",
+            "publishing consistency",
+            "production consistency",
+            "how consistent is publishing"
+        ],
+        "tags": [
+            "consistency",
+            "CV",
+            "volatility",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_049",
+        "name": "Publishing Funnel",
+        "tab": "Type Mix & Publishing Funnel",
+        "tab_id": "tab4",
+        "description": "Three-stage content funnel: Uploaded → Created → Published with step conversion rates. Shows exactly where content drops off.",
+        "formula": "Stage 1: Created/Uploaded*100, Stage 2: Published/Created*100",
+        "sql_hint": "SELECT SUM(\"Total Uploaded\"), SUM(\"Total Created\"), SUM(\"Total Published\") FROM Fact_Monthly or Fact_Input_Type",
+        "unit": "count + %",
+        "category": "funnel",
+        "related_dimensions": [
+            "input_type",
+            "month",
+            "channel"
+        ],
+        "related_kpi_ids": [
+            "kpi_038",
+            "kpi_039",
+            "kpi_009"
+        ],
+        "synonyms": [
+            "publishing funnel",
+            "upload created published funnel",
+            "content funnel",
+            "pipeline funnel",
+            "funnel stages",
+            "3 stage funnel",
+            "uploaded to published",
+            "what is the funnel"
+        ],
+        "tags": [
+            "funnel",
+            "pipeline",
+            "stages",
+            "type_mix"
+        ]
+    },
+    {
+        "id": "kpi_050",
+        "name": "Total Videos in View",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Total videos matching current filter in Video Explorer. Changes dynamically with filters.",
+        "formula": "COUNT(Video_ID) with applied filters",
+        "sql_hint": "SELECT COUNT(*) FROM Fact_Video f JOIN Dim_User u ON f.User_ID=u.User_ID JOIN Dim_Team t ON f.Team_ID=t.Team_ID WHERE <filters>",
+        "unit": "videos",
+        "category": "volume",
+        "related_dimensions": [
+            "user",
+            "team",
+            "type",
+            "platform",
+            "published_status"
+        ],
+        "related_kpi_ids": [
+            "kpi_051",
+            "kpi_052"
+        ],
+        "synonyms": [
+            "total videos",
+            "videos in view",
+            "filtered video count",
+            "how many videos",
+            "video count in view"
+        ],
+        "tags": [
+            "videos",
+            "explorer",
+            "filter",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_051",
+        "name": "Published Count (Explorer)",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Number of published videos within the current filter selection in Video Explorer.",
+        "formula": "COUNT WHERE Published = 'Yes' with filters",
+        "sql_hint": "SELECT COUNT(*) FROM Fact_Video WHERE Published='Yes' AND <filters>",
+        "unit": "videos",
+        "category": "volume",
+        "related_dimensions": [
+            "user",
+            "team",
+            "type",
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_050",
+            "kpi_052"
+        ],
+        "synonyms": [
+            "published in view",
+            "published videos in explorer",
+            "how many published in filter",
+            "published count filtered"
+        ],
+        "tags": [
+            "published",
+            "explorer",
+            "filter",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_052",
+        "name": "Publish % (Filtered)",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Percentage of videos published within current filter. Context-aware publish rate for the explorer view.",
+        "formula": "Published / Total * 100 (within filter)",
+        "sql_hint": "SELECT (COUNT(CASE WHEN Published='Yes' THEN 1 END) * 100.0 / COUNT(*)) FROM Fact_Video WHERE <filters>",
+        "unit": "%",
+        "category": "funnel",
+        "related_dimensions": [
+            "user",
+            "team",
+            "type",
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_050",
+            "kpi_051"
+        ],
+        "synonyms": [
+            "publish percentage filtered",
+            "publish rate in view",
+            "filtered publish rate",
+            "publish percentage in explorer"
+        ],
+        "tags": [
+            "publish rate",
+            "filtered",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_053",
+        "name": "Unique Users in View",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Number of distinct users contributing videos in the current filter selection.",
+        "formula": "COUNT(DISTINCT User_Name) with filters",
+        "sql_hint": "SELECT COUNT(DISTINCT User_ID) FROM Fact_Video WHERE <filters>",
+        "unit": "users",
+        "category": "user",
+        "related_dimensions": [
+            "team",
+            "type"
+        ],
+        "related_kpi_ids": [
+            "kpi_050"
+        ],
+        "synonyms": [
+            "unique users in view",
+            "distinct users",
+            "how many users in filter",
+            "contributors in view"
+        ],
+        "tags": [
+            "users",
+            "unique",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_054",
+        "name": "Unique Types in View",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Number of distinct content types in the current filter selection.",
+        "formula": "COUNT(DISTINCT Type) with filters",
+        "sql_hint": "SELECT COUNT(DISTINCT Type) FROM Fact_Video WHERE <filters>",
+        "unit": "count",
+        "category": "volume",
+        "related_dimensions": [
+            "type"
+        ],
+        "related_kpi_ids": [
+            "kpi_050"
+        ],
+        "synonyms": [
+            "unique types",
+            "content types in view",
+            "distinct types",
+            "how many types in filter"
+        ],
+        "tags": [
+            "types",
+            "unique",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_055",
+        "name": "Platform Count (Explorer)",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Distinct platforms where published videos appear in current filter.",
+        "formula": "COUNT(DISTINCT Platform_Name) WHERE Published='Yes' and Platform != '-'",
+        "sql_hint": "SELECT COUNT(DISTINCT Platform_ID) FROM Fact_Video WHERE Published='Yes' AND Platform_ID IS NOT NULL AND <filters>",
+        "unit": "platforms",
+        "category": "platform",
+        "related_dimensions": [
+            "platform"
+        ],
+        "related_kpi_ids": [
+            "kpi_051"
+        ],
+        "synonyms": [
+            "platform count",
+            "platforms in view",
+            "how many platforms",
+            "distinct platforms in filter"
+        ],
+        "tags": [
+            "platforms",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_056",
+        "name": "Top Type / Top User",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Most frequent content type and most prolific user in current filter selection.",
+        "formula": "MODE(Type) and MODE(User_Name) within filter",
+        "sql_hint": "SELECT Type, COUNT(*) FROM Fact_Video WHERE <filters> GROUP BY Type ORDER BY COUNT(*) DESC LIMIT 1",
+        "unit": "label",
+        "category": "user",
+        "related_dimensions": [
+            "type",
+            "user"
+        ],
+        "related_kpi_ids": [
+            "kpi_054",
+            "kpi_053"
+        ],
+        "synonyms": [
+            "top type",
+            "top user",
+            "most common type",
+            "top contributor",
+            "most active user in view",
+            "dominant type in view"
+        ],
+        "tags": [
+            "top",
+            "type",
+            "user",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_057",
+        "name": "Type Share %",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Percentage share of each content type within current filter. Shows output format distribution.",
+        "formula": "Type Count / Total Count * 100 per Type",
+        "sql_hint": "SELECT Type, COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() FROM Fact_Video WHERE <filters> GROUP BY Type",
+        "unit": "%",
+        "category": "volume",
+        "related_dimensions": [
+            "type"
+        ],
+        "related_kpi_ids": [
+            "kpi_054"
+        ],
+        "synonyms": [
+            "type share",
+            "type distribution",
+            "output type share",
+            "type percentage",
+            "content type breakdown"
+        ],
+        "tags": [
+            "type",
+            "share",
+            "distribution",
+            "explorer",
+            "tab5"
+        ]
+    },
+    {
+        "id": "kpi_058",
+        "name": "Team Publish %",
+        "tab": "Video Explorer",
+        "tab_id": "tab5",
+        "description": "Published videos as percentage of total videos per team. Measures publishing performance at team level.",
+        "formula": "Published / Videos * 100 per Team",
+        "sql_hint": "SELECT t.Team_Name, COUNT(CASE WHEN f.Published='Yes' THEN 1 END)*100.0/COUNT(*) AS pub_pct FROM Fact_Video f JOIN Dim_Team t ON f.Team_ID=t.Team_ID WHERE <filters> GROUP BY t.Team_Name",
+        "unit": "%",
+        "category": "funnel",
+        "related_dimensions": [
+            "team"
+        ],
+        "related_kpi_ids": [
+            "kpi_052",
+            "kpi_051"
+        ],
+        "synonyms": [
+            "team publish rate",
+            "team publish percentage",
+            "publish rate by team",
+            "which team publishes most",
+            "team publishing performance"
+        ],
+        "tags": [
+            "team",
+            "publish rate",
+            "explorer",
+            "tab5"
+        ]
+    }
+]
