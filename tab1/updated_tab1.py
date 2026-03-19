@@ -1041,4 +1041,3 @@ print(f"""
   Current Month : {CUR_NAME}
   Previous Month: {PRV_NAME}
 """)
-
