@@ -29,6 +29,8 @@ if BACKEND_DIR not in sys.path:
 from orchestrator import run_pipeline, stream_pipeline  # noqa: E402
 from multidimension_anomaly import router as anomaly_router, load_all_data as load_anomaly_data  # noqa: E402
 from recommendation import router as recommend_router, init_recommendation_service  # noqa: E402
+from tab4_kpis import router as tab4_router, load_tab4_data  # noqa: E402
+from tab5_explorer import router as tab5_router, load_tab5_data  # noqa: E402
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -132,6 +134,12 @@ app.include_router(anomaly_router)
 # ── Recommendation router ────────────────────────────────────────────────────
 app.include_router(recommend_router)
 
+# ── Tab 4 KPI router ─────────────────────────────────────────────────────────
+app.include_router(tab4_router)
+
+# ── Tab 5 Video Explorer router ──────────────────────────────────────────────
+app.include_router(tab5_router)
+
 
 @app.on_event("startup")
 def _startup_load_modules():
@@ -146,6 +154,18 @@ def _startup_load_modules():
         logger.info("Recommendation service initialised successfully.")
     except Exception as exc:
         logger.error("Failed to init recommendation service: %s", exc)
+
+    try:
+        load_tab4_data()
+        logger.info("Tab 4 KPI data loaded successfully.")
+    except Exception as exc:
+        logger.error("Failed to load Tab 4 KPI data: %s", exc)
+
+    try:
+        load_tab5_data()
+        logger.info("Tab 5 Explorer data loaded successfully.")
+    except Exception as exc:
+        logger.error("Failed to load Tab 5 Explorer data: %s", exc)
 
 
 # ── In-memory chat sessions ─────────────────────────────────────────────────

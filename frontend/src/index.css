@@ -2349,18 +2349,30 @@ body {
   transform: rotate(-90deg);
 }
 
+.gauge-container {
+  position: relative;
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 34px;
+}
+
 .gauge-value {
   position: absolute;
-  bottom: 20px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 64px;
+  font-size: 56px;
   font-weight: 800;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .gauge-labels {
   position: absolute;
-  bottom: 0;
+  bottom: 6px;
   width: 100%;
   display: flex;
   justify-content: space-between;
