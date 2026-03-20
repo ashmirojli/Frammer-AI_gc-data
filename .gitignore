@@ -32,8 +32,6 @@ env/
 *.sqlite3
 
 # Data and Secret Files
-Dataset/
-StarSchemaDB/
 .env
 
 # Python Cache
