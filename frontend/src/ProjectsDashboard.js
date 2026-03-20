@@ -10,7 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 
 const TAB2_API = 'http://localhost:8000/api/tab2';
-const COLORS = ['#ff4d6d', '#00c864', '#f97316', '#3b82f6', '#a855f7', '#ec4899', '#2dd4bf', '#fbbf24'];
+const COLORS = ['#ff4d6d', '#00c864', '#f97316', '#3b82f6', '#fb7185', '#ec4899', '#2dd4bf', '#fbbf24'];
 
 const fmt = (n) => n != null ? Number(n).toLocaleString() : '—';
 const fmtK = (n) => {
@@ -18,6 +18,36 @@ const fmtK = (n) => {
   if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
   return String(n);
+};
+
+const renderPieCalloutLabel = ({ cx, cy, midAngle, outerRadius, name, value, fill }) => {
+  const RADIAN = Math.PI / 180;
+  const cos = Math.cos(-midAngle * RADIAN);
+  const sin = Math.sin(-midAngle * RADIAN);
+  const sx = cx + outerRadius * cos;
+  const sy = cy + outerRadius * sin;
+  const mx = cx + (outerRadius + 18) * cos;
+  const my = cy + (outerRadius + 18) * sin;
+  const ex = mx + (cos >= 0 ? 18 : -18);
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <path d={`M${sx},${sy} L${mx},${my} L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} />
+      <circle cx={ex} cy={ey} r={2} fill={fill} />
+      <text
+        x={ex + (cos >= 0 ? 6 : -6)}
+        y={ey + 4}
+        textAnchor={textAnchor}
+        fill={fill}
+        fontSize={12}
+        fontWeight={700}
+      >
+        {`${name}: ${fmt(value)}`}
+      </text>
+    </g>
+  );
 };
 
 const CustomScatterTooltip = ({ active, payload }) => {
@@ -69,7 +99,7 @@ const ProjectsDashboard = () => {
         <aside className="projects-sidebar">
           <div className="projects-sidebar-header">
             <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
-            <div className="sidebar-brand mini"><span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span></div>
+            <div className="sidebar-brand mini"><span style={{ fontSize: '20px', fontWeight: '900', color: '#ff4d6d' }}>FRAMMER AI</span></div>
           </div>
         </aside>
         <main className="projects-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading analytics…</main>
@@ -94,7 +124,7 @@ const ProjectsDashboard = () => {
     <div className="projects-content">
       <svg style={{ height: 0, width: 0, position: 'absolute' }}>
         <defs>
-          <linearGradient id="colorUploaded" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/><stop offset="95%" stopColor="#a855f7" stopOpacity={0}/></linearGradient>
+          <linearGradient id="colorUploaded" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fb7185" stopOpacity={0.3}/><stop offset="95%" stopColor="#fb7185" stopOpacity={0}/></linearGradient>
           <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00c864" stopOpacity={0.3}/><stop offset="95%" stopColor="#00c864" stopOpacity={0}/></linearGradient>
           <linearGradient id="colorPublished" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ff4d6d" stopOpacity={0.3}/><stop offset="95%" stopColor="#ff4d6d" stopOpacity={0}/></linearGradient>
         </defs>
@@ -124,7 +154,7 @@ const ProjectsDashboard = () => {
                 <YAxis stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                 <Legend iconType="circle" />
-                <Area type="monotone" dataKey="uploaded" stackId="1" stroke="#a855f7" fill="url(#colorUploaded)" fillOpacity={1} name="Uploaded" />
+                <Area type="monotone" dataKey="uploaded" stackId="1" stroke="#fb7185" fill="url(#colorUploaded)" fillOpacity={1} name="Uploaded" />
                 <Area type="monotone" dataKey="created" stackId="1" stroke="#00c864" fill="url(#colorCreated)" fillOpacity={1} name="Created" />
                 <Area type="monotone" dataKey="published" stackId="1" stroke="#ff4d6d" fill="url(#colorPublished)" fillOpacity={1} name="Published" />
               </AreaChart>
@@ -141,7 +171,7 @@ const ProjectsDashboard = () => {
                 <YAxis dataKey="name" type="category" stroke="#444" fontSize={10} tickLine={false} axisLine={false} width={100} />
                 <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                 <Legend iconType="circle" />
-                <Bar dataKey="uploaded" fill="#a855f7" name="Uploaded" stackId="a" />
+                <Bar dataKey="uploaded" fill="#fb7185" name="Uploaded" stackId="a" />
                 <Bar dataKey="created" fill="#00c864" name="Created" stackId="a" />
               </BarChart>
             </ResponsiveContainer>
@@ -181,7 +211,7 @@ const ProjectsDashboard = () => {
               <Area type="monotone" dataKey="created" fill="#00c864" fillOpacity={0.05} stroke="none" />
               <Line type="monotone" dataKey="created" stroke="#00c864" strokeWidth={2} dot={{ r: 4 }} name="Created Volume" />
               <Line type="monotone" dataKey="published" stroke="#ff4d6d" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} name="Published Volume" />
-              <Line yAxisId="right" type="stepAfter" dataKey="expansion" stroke="#a855f7" strokeWidth={2} dot={{ r: 4 }} name="Expansion Factor (x)" />
+              <Line yAxisId="right" type="stepAfter" dataKey="expansion" stroke="#fb7185" strokeWidth={2} dot={{ r: 4 }} name="Expansion Factor (x)" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -224,20 +254,31 @@ const ProjectsDashboard = () => {
   );
 
   const renderEcosystem = () => {
-    const platData = eco.platform_dist.map((p, i) => ({ ...p, color: COLORS[i % COLORS.length] }));
+    const platData = eco.platform_dist
+      .filter((p) => Number(p.value) > 0)
+      .map((p, i) => ({ ...p, color: COLORS[i % COLORS.length] }));
     return (
-      <div className="projects-content">
-        <div className="projects-charts-grid" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
-          <div className="projects-chart-card">
+      <div className="projects-content" style={{ minHeight: 'calc(100vh - 128px)', display: 'flex', flexDirection: 'column' }}>
+        <div className="projects-charts-grid" style={{ gridTemplateColumns: '1.2fr 1fr', flex: 1, marginBottom: 0, alignItems: 'stretch' }}>
+          <div className="projects-chart-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <h4>Publishing Ecosystem Map</h4>
             <p className="chart-subtitle">Platform distribution by published count</p>
-            <div style={{ height: 400 }}>
+            <div style={{ height: 400, flex: 1 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={platData} dataKey="value" innerRadius={60} outerRadius={120} paddingAngle={2} stroke="none" label={({ name, pct }) => `${name} ${pct}%`}>
+                  <Pie
+                    data={platData}
+                    dataKey="value"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={2}
+                    stroke="none"
+                    label={renderPieCalloutLabel}
+                    labelLine={false}
+                  >
                     {platData.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -249,10 +290,10 @@ const ProjectsDashboard = () => {
               </div>
             </div>
           </div>
-          <div className="projects-chart-card">
+          <div className="projects-chart-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <h4>Top Channels by Published Count</h4>
             <p className="chart-subtitle">Channel-level distribution</p>
-            <div style={{ height: 400 }}>
+            <div style={{ height: 400, flex: 1 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={eco.channel_dist.slice(0, 10)} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#222" horizontal={false} />
@@ -275,7 +316,7 @@ const ProjectsDashboard = () => {
         <div className="projects-kpi-card mini"><p className="kpi-label">Avg Generation Rate</p><h2 className="kpi-value" style={{ color: '#00c864' }}>{gr.avg_rate}</h2><p className="kpi-sub">items per upload</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Peak Rate</p><h2 className="kpi-value" style={{ color: '#ff4d6d' }}>{gr.peak_rate}</h2><p className="kpi-sub">{gr.peak_format}</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Total Generated</p><h2 className="kpi-value">{fmtK(gr.total_generated)}</h2><p className="kpi-sub">total items</p></div>
-        <div className="projects-kpi-card mini"><p className="kpi-label">Total Uploads</p><h2 className="kpi-value" style={{ color: '#a855f7' }}>{fmt(gr.total_uploads)}</h2><p className="kpi-sub">source videos</p></div>
+        <div className="projects-kpi-card mini"><p className="kpi-label">Total Uploads</p><h2 className="kpi-value" style={{ color: '#fb7185' }}>{fmt(gr.total_uploads)}</h2><p className="kpi-sub">source videos</p></div>
       </div>
       <div className="projects-charts-grid">
         <div className="projects-chart-card">
@@ -303,7 +344,7 @@ const ProjectsDashboard = () => {
                 <XAxis dataKey="name" stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
-                <Line type="monotone" dataKey="rate" stroke="#a855f7" strokeWidth={3} dot={{ r: 4, fill: '#a855f7' }} name="CEF" />
+                <Line type="monotone" dataKey="rate" stroke="#fb7185" strokeWidth={3} dot={{ r: 4, fill: '#fb7185' }} name="CEF" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -361,7 +402,7 @@ const ProjectsDashboard = () => {
         <div className="projects-kpi-card mini"><p className="kpi-label">Avg Productivity</p><h2 className="kpi-value" style={{ color: '#00c864' }}>{pr.avg_productivity}</h2><p className="kpi-sub">videos per user</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Peak Month</p><h2 className="kpi-value" style={{ color: '#ff4d6d' }}>{pr.peak_productivity}</h2><p className="kpi-sub">{pr.peak_month}</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Total Published</p><h2 className="kpi-value">{fmtK(pr.total_published)}</h2><p className="kpi-sub">all months</p></div>
-        <div className="projects-kpi-card mini"><p className="kpi-label">Total Users</p><h2 className="kpi-value" style={{ color: '#a855f7' }}>{pr.total_users}</h2><p className="kpi-sub">unique contributors</p></div>
+        <div className="projects-kpi-card mini"><p className="kpi-label">Total Users</p><h2 className="kpi-value" style={{ color: '#fb7185' }}>{pr.total_users}</h2><p className="kpi-sub">unique contributors</p></div>
       </div>
       <div className="projects-charts-grid">
         <div className="projects-chart-card">
@@ -389,7 +430,7 @@ const ProjectsDashboard = () => {
                 <YAxis yAxisId="right" orientation="right" stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                 <Legend verticalAlign="bottom" align="center" />
-                <Bar yAxisId="left" dataKey="users" fill="#a855f7" radius={[4, 4, 0, 0]} name="Active Users" />
+                <Bar yAxisId="left" dataKey="users" fill="#fb7185" radius={[4, 4, 0, 0]} name="Active Users" />
                 <Line yAxisId="right" type="monotone" dataKey="videos" stroke="#00c864" strokeWidth={3} dot={{ r: 4, fill: '#00c864' }} name="Published Videos" />
               </ComposedChart>
             </ResponsiveContainer>
@@ -413,7 +454,7 @@ const ProjectsDashboard = () => {
   const renderDurationFootprint = () => (
     <div className="projects-content">
       <div className="projects-kpi-grid">
-        <div className="projects-kpi-card mini"><p className="kpi-label">Total Uploaded</p><h2 className="kpi-value" style={{ color: '#a855f7' }}>{fmtK(dur.total_uploaded_min)}</h2><p className="kpi-sub">minutes</p></div>
+        <div className="projects-kpi-card mini"><p className="kpi-label">Total Uploaded</p><h2 className="kpi-value" style={{ color: '#fb7185' }}>{fmtK(dur.total_uploaded_min)}</h2><p className="kpi-sub">minutes</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Total Created</p><h2 className="kpi-value" style={{ color: '#00c864' }}>{fmtK(dur.total_created_min)}</h2><p className="kpi-sub">minutes</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Total Published</p><h2 className="kpi-value" style={{ color: '#ff4d6d' }}>{fmtK(dur.total_published_min)}</h2><p className="kpi-sub">minutes</p></div>
         <div className="projects-kpi-card mini"><p className="kpi-label">Expansion Rate</p><h2 className="kpi-value" style={{ color: '#f97316' }}>{dur.expansion_rate}×</h2><p className="kpi-sub">created vs uploaded</p></div>
@@ -430,7 +471,7 @@ const ProjectsDashboard = () => {
                 <YAxis stroke="#444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => fmtK(v)} />
                 <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333' }} />
                 <Legend verticalAlign="bottom" align="center" />
-                <Area type="monotone" dataKey="uploaded" stroke="#a855f7" fill="#a855f7" fillOpacity={0.1} name="Uploaded" />
+                <Area type="monotone" dataKey="uploaded" stroke="#fb7185" fill="#fb7185" fillOpacity={0.1} name="Uploaded" />
                 <Area type="monotone" dataKey="created" stroke="#00c864" fill="#00c864" fillOpacity={0.1} name="Created" />
                 <Area type="monotone" dataKey="published" stroke="#ff4d6d" fill="#ff4d6d" fillOpacity={0.1} name="Published" />
               </AreaChart>
@@ -461,7 +502,7 @@ const ProjectsDashboard = () => {
           <thead><tr><th>Month</th><th style={{ textAlign: 'right' }}>Uploaded</th><th style={{ textAlign: 'right' }}>Created</th><th style={{ textAlign: 'right' }}>Published</th><th style={{ textAlign: 'right' }}>Expansion</th><th style={{ textAlign: 'right' }}>Publish %</th></tr></thead>
           <tbody>
             {dur.monthly.map((r, i) => (
-              <tr key={i}><td style={{ color: '#fff' }}>{r.name}</td><td style={{ textAlign: 'right', color: '#a855f7' }}>{fmtK(r.uploaded)}</td><td style={{ textAlign: 'right', color: '#00c864' }}>{fmtK(r.created)}</td><td style={{ textAlign: 'right', color: '#ff4d6d' }}>{fmtK(r.published)}</td><td style={{ textAlign: 'right' }}>{r.expansion}×</td><td style={{ textAlign: 'right' }}>{r.publish_rate}%</td></tr>
+              <tr key={i}><td style={{ color: '#fff' }}>{r.name}</td><td style={{ textAlign: 'right', color: '#fb7185' }}>{fmtK(r.uploaded)}</td><td style={{ textAlign: 'right', color: '#00c864' }}>{fmtK(r.created)}</td><td style={{ textAlign: 'right', color: '#ff4d6d' }}>{fmtK(r.published)}</td><td style={{ textAlign: 'right' }}>{r.expansion}×</td><td style={{ textAlign: 'right' }}>{r.publish_rate}%</td></tr>
             ))}
           </tbody>
         </table>
@@ -751,7 +792,7 @@ const ProjectsDashboard = () => {
       <aside className="projects-sidebar">
         <div className="projects-sidebar-header">
           <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
-          <div className="sidebar-brand mini"><span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span></div>
+          <div className="sidebar-brand mini"><span style={{ fontSize: '20px', fontWeight: '900', color: '#ff4d6d' }}>FRAMMER AI</span></div>
         </div>
         <div className="projects-nav-section">
           <p className="projects-nav-label">DASHBOARDS</p>

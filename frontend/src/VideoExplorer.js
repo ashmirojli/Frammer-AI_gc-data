@@ -375,7 +375,7 @@ const VideoExplorer = () => {
       <aside className="explorer-sidebar">
         <div className="sidebar-brand">
           <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
-          <span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span>
+          <span style={{ fontSize: '20px', fontWeight: '900', color: '#ff4d6d' }}>FRAMMER AI</span>
         </div>
 
         <div className="filter-section">

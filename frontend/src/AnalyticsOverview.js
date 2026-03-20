@@ -87,7 +87,7 @@ const AnalyticsOverview = () => {
              <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
              <div className="sidebar-brand" style={{ marginLeft: '8px' }}>
                 {/* <div className="logo-box mini">F</div> */}
-                <span style={{ fontSize: '16px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span>
+                <span style={{ fontSize: '22px', fontWeight: '900', color: '#ff4d6d' }}>FRAMMER AI</span>
              </div>
              {/* <div style={{ width: '1px', height: '20px', backgroundColor: '#333', margin: '0 16px' }}></div> */}
              {/* <span style={{ fontSize: '13px', color: '#888', fontWeight: '500' }}>Analytics Overview</span> */}
@@ -376,19 +376,19 @@ const AnalyticsOverview = () => {
                   <div><h4>Active Users Summary</h4><p className="chart-subtitle">{userData.activeUsers} active / {userData.totalUsers} total registered users</p></div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '40px', alignItems: 'center', padding: '20px 0' }}>
-                <div style={{ position: 'relative', width: 120, height: 120 }}>
+              <div style={{ display: 'flex', gap: '48px', alignItems: 'center', padding: '28px 0 24px' }}>
+                <div style={{ position: 'relative', width: 180, height: 180, flexShrink: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={[{v: userData.activeUsers, color: '#00c864'}, {v: userData.inactive, color: '#ff4d6d'}]} innerRadius={45} outerRadius={55} dataKey="v" startAngle={90} endAngle={450}>
+                      <Pie data={[{v: userData.activeUsers, color: '#00c864'}, {v: userData.inactive, color: '#ff4d6d'}]} innerRadius={68} outerRadius={84} dataKey="v" startAngle={90} endAngle={450}>
                         <Cell fill="#00c864" />
                         <Cell fill="#ff4d6d" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="donut-center-label">
-                    <span style={{ fontSize: '20px' }}>{userData.activeUsers}</span>
-                    <p style={{ fontSize: '8px', color: '#555', margin: 0 }}>Active</p>
+                    <span style={{ fontSize: '30px' }}>{userData.activeUsers}</span>
+                    <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>Active</p>
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>

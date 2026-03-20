@@ -107,7 +107,7 @@ const MultidimensionAnomaly = () => {
       {/* Header */}
       <div className="mdx-header">
         <div>
-          <h1 className="mdx-title">FRAMMER AI</h1>
+          <h1 className="mdx-title">Multidimensional Matrix</h1>
         </div>
         <div className="mdx-header-right">
           <div className="mdx-header-label">Total Users</div>

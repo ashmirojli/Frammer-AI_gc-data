@@ -125,7 +125,7 @@ body {
 /* Dashboard Layout Styles */
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   height: 100vh;
   background-color: var(--bg-color);
 }
@@ -133,7 +133,7 @@ body {
 .sidebar {
   background-color: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
-  padding: 24px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -142,9 +142,9 @@ body {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: 700;
-  font-size: 20px;
+  gap: 14px;
+  font-weight: 800;
+  font-size: 24px;
 }
 
 .sidebar-section {
@@ -155,23 +155,23 @@ body {
 
 .section-label {
   color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  margin-bottom: 10px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 8px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .nav-item:hover {
@@ -1102,7 +1102,7 @@ body {
 /* Projects Dashboard Layout */
 .projects-dashboard-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 300px 1fr;
   height: 100vh;
   background-color: #000;
   color: #fff;
@@ -1113,43 +1113,43 @@ body {
   border-right: 1px solid #1a1a1a;
   display: flex;
   flex-direction: column;
-  padding: 24px 0;
+  padding: 28px 0;
 }
 
 .projects-sidebar-header {
-  padding: 0 24px;
-  margin-bottom: 40px;
+  padding: 0 28px;
+  margin-bottom: 44px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .projects-nav-section {
   flex: 1;
-  padding: 0 12px;
+  padding: 0 16px;
 }
 
 .projects-nav-label {
-  font-size: 10px;
+  font-size: 12px;
   color: #444;
   font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
-  padding-left: 12px;
+  letter-spacing: 1.2px;
+  margin-bottom: 18px;
+  padding-left: 14px;
 }
 
 .projects-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 8px;
   color: #888;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .projects-nav-item:hover {
@@ -1502,7 +1502,7 @@ body {
 /* Analytics Dashboard Styles */
 .analytics-dashboard-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 300px 1fr;
   height: 100vh;
   background-color: #000;
   color: #fff;
@@ -1513,44 +1513,44 @@ body {
   border-right: 1px solid #1a1a1a;
   display: flex;
   flex-direction: column;
-  padding: 24px 0;
+  padding: 28px 0;
 }
 
 .analytics-sidebar-header {
-  padding: 0 24px;
-  margin-bottom: 40px;
+  padding: 0 28px;
+  margin-bottom: 44px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .analytics-nav-section {
   flex: 1;
-  padding: 0 12px;
+  padding: 0 16px;
 }
 
 .analytics-nav-label {
-  font-size: 10px;
+  font-size: 12px;
   color: #444;
   font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
-  padding-left: 12px;
+  letter-spacing: 1.2px;
+  margin-bottom: 18px;
+  padding-left: 14px;
   text-transform: uppercase;
 }
 
 .analytics-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 8px;
   color: #888;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .analytics-nav-item:hover {
@@ -2895,7 +2895,7 @@ body {
 /* Video Explorer Styles */
 .explorer-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   height: 100vh;
   background-color: #050505;
 }
@@ -2903,10 +2903,10 @@ body {
 .explorer-sidebar {
   background-color: #0a0a0a;
   border-right: 1px solid #1a1a1a;
-  padding: 24px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
   overflow-y: auto;
 }
 
@@ -2918,8 +2918,8 @@ body {
 
 .filter-section label {
   color: #ff4d6d;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   display: flex;
@@ -2931,18 +2931,20 @@ body {
   background-color: #111;
   border: 1px solid #222;
   color: white;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 600;
   outline: none;
 }
 
 .sidebar-dropdown {
   background-color: #111;
   border: 1px solid #222;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 700;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2957,7 +2959,8 @@ body {
 
 .radio-group label {
   color: white;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: normal;
   display: flex;
