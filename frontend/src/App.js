@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Layout, Briefcase, BarChart2, Users, Settings, ArrowLeft } from 'lucide-react';
+import { FileText, TrendingUp, BarChart2, Filter, Search, ArrowLeft } from 'lucide-react';
 import AnalyticsOverview from './AnalyticsOverview';
 import ExecutiveSummary from './ExecutiveSummary';
 import VideoExplorer from './VideoExplorer';
@@ -28,22 +28,19 @@ const Page = ({ title, icon: Icon }) => (
 // Home Component
 const Home = () => {
   const topRow = [
-    { name: 'Dashboard', path: '/dashboard', icon: Layout },
-    { name: 'Projects', path: '/projects', icon: Briefcase },
-    { name: 'Analytics', path: '/analytics', icon: BarChart2 },
+    { name: 'Summary', path: '/dashboard', icon: FileText },
+    { name: 'Trends', path: '/projects', icon: TrendingUp },
+    { name: 'Analysis', path: '/analytics', icon: BarChart2 },
   ];
   const bottomRow = [
-    { name: 'Team', path: '/team', icon: Users },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'Funnel', path: '/team', icon: Filter },
+    { name: 'Explorer', path: '/settings', icon: Search },
   ];
 
   return (
     <div className="home-container">
       <div className="logo-header">
-        <div className="logo-box">F</div>
-        <h1 className="app-title">
-          Frammer <span>AI</span>
-        </h1>
+        <span style={{ fontSize: '50px', fontWeight: '800', color: '#ff4d6d', margin: 0 }}>FRAMMER AI</span>
       </div>
 
       <div className="buttons-container">

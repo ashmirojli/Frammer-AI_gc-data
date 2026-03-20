@@ -82,30 +82,30 @@ const AnalyticsOverview = () => {
   return (
     <div className="dashboard-layout" style={{ display: 'block' }}>
       <main className="dashboard-main" style={{ height: 'auto', overflow: 'visible' }}>
-        <header className="dashboard-header">
+        <header className="dashboard-header" style={{ borderBottom: 'none' }}>
           <div className="header-left">
              <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
              <div className="sidebar-brand" style={{ marginLeft: '8px' }}>
-                <div className="logo-box mini">F</div>
-                <span style={{ fontSize: '16px', fontWeight: '800' }}>FRAMMER <span style={{ color: '#ff4d6d' }}>AI</span></span>
+                {/* <div className="logo-box mini">F</div> */}
+                <span style={{ fontSize: '16px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span>
              </div>
-             <div style={{ width: '1px', height: '20px', backgroundColor: '#333', margin: '0 16px' }}></div>
-             <span style={{ fontSize: '13px', color: '#888', fontWeight: '500' }}>Analytics Overview</span>
-             {kpis.find(k => k.label === 'Orphan Content Rate') && (
-               <div className="critical-header-badge" style={{ marginLeft: '24px' }}>
-                  Critical: Orphan Rate {kpis.find(k => k.label === 'Orphan Content Rate')?.value}
-               </div>
-             )}
+             {/* <div style={{ width: '1px', height: '20px', backgroundColor: '#333', margin: '0 16px' }}></div> */}
+             {/* <span style={{ fontSize: '13px', color: '#888', fontWeight: '500' }}>Analytics Overview</span> */}
+             {/* {kpis.find(k => k.label === 'Orphan Content Rate') && ( */}
+              {/* //  <div className="critical-header-badge" style={{ marginLeft: '24px' }}> */}
+                  {/* Critical: Orphan Rate {kpis.find(k => k.label === 'Orphan Content Rate')?.value} */}
+              {/* //  </div> */}
+             {/* )} */}
           </div>
-          <div className="header-right">
+          {/* <div className="header-right">
             <div className="time-filters">
               <span style={{ color: '#888', fontSize: '12px' }}>Feb, 2026 | Current Month</span>
             </div>
-          </div>
+          </div> */}
         </header>
 
-        <div className="scrollable-content" style={{ padding: '24px 32px 100px 32px' }}>
-          <div className="section-divider">
+        <div className="scrollable-content" style={{ padding: '12px 32px 100px 32px' }}>
+          <div className="section-divider" style={{ marginTop: 0 }}>
             <h2>Top 10 KPIs</h2>
             <div className="line"></div>
             <div style={{ background: '#111', border: '1px solid #222', borderRadius: '4px' }}>
@@ -231,20 +231,6 @@ const AnalyticsOverview = () => {
                   ))}
                 </div>
               </div>
-              <table className="breakdown-table">
-                <thead><tr><th>Input Type</th><th>Uploaded</th><th>Created</th><th>Published</th><th>Pub Rate</th></tr></thead>
-                <tbody>
-                  {inputBreakdownData.map((row, i) => (
-                    <tr key={i}>
-                      <td style={{ color: '#888' }}>{row.type}</td>
-                      <td className="val">{row.uploaded.toLocaleString()}</td>
-                      <td className="val" style={{ color: '#555' }}>{row.created.toLocaleString()}</td>
-                      <td className="val" style={{ color: '#555' }}>{row.published}</td>
-                      <td><span className="rate">{row.rate}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
 
             <div className="chart-card">
@@ -280,19 +266,6 @@ const AnalyticsOverview = () => {
                   ))}
                 </div>
               </div>
-              <table className="breakdown-table">
-                <thead><tr><th>Output Type</th><th>Created</th><th>Published</th><th>Pub Rate %</th></tr></thead>
-                <tbody>
-                  {outputBreakdownData.map((row, i) => (
-                    <tr key={i}>
-                      <td style={{ color: '#888' }}>{row.type}</td>
-                      <td className="val">{row.created.toLocaleString()}</td>
-                      <td className="val" style={{ color: '#555' }}>{row.published}</td>
-                      <td><span className="rate">{row.rate}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
 

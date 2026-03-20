@@ -69,7 +69,7 @@ const ProjectsDashboard = () => {
         <aside className="projects-sidebar">
           <div className="projects-sidebar-header">
             <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
-            <div className="sidebar-brand mini"><div className="logo-box mini">F</div><span style={{ fontSize: '14px' }}>Frammer <span style={{ color: '#ff4d6d' }}>AI</span></span></div>
+            <div className="sidebar-brand mini"><span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span></div>
           </div>
         </aside>
         <main className="projects-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading analytics…</main>
@@ -751,7 +751,7 @@ const ProjectsDashboard = () => {
       <aside className="projects-sidebar">
         <div className="projects-sidebar-header">
           <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
-          <div className="sidebar-brand mini"><div className="logo-box mini">F</div><span style={{ fontSize: '14px' }}>Frammer <span style={{ color: '#ff4d6d' }}>AI</span></span></div>
+          <div className="sidebar-brand mini"><span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span></div>
         </div>
         <div className="projects-nav-section">
           <p className="projects-nav-label">DASHBOARDS</p>
@@ -763,13 +763,13 @@ const ProjectsDashboard = () => {
         </div>
       </aside>
       <main className="projects-main">
-        <header className="projects-header">
+        {/* <header className="projects-header">
           <div className="header-search-container"><Search size={18} color="#555" /><input type="text" placeholder="Search metrics..." /></div>
           <div className="header-actions">
             <div className="time-pill-group"><button className="time-pill">Day</button><button className="time-pill">Week</button><button className="time-pill active">Month</button><button className="time-pill">Quarter</button></div>
             <div className="header-icon-btn"><Bell size={18} /></div>
           </div>
-        </header>
+        </header> */}
         <div className="projects-scroll-area">{renderActiveTab()}</div>
         <div className="help-fab mini"><HelpCircle size={20} /></div>
       </main>

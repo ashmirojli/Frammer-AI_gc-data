@@ -33,6 +33,7 @@ from tab4_kpis import router as tab4_router, load_tab4_data  # noqa: E402
 from tab5_explorer import router as tab5_router, load_tab5_data  # noqa: E402
 from tab2_analytics import router as tab2_router, load_tab2_data  # noqa: E402
 from tab1_analytics import router as tab1_router, load_tab1_data  # noqa: E402
+from tab3_analytics import router as tab3_router, load_tab3_data  # noqa: E402
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -148,6 +149,9 @@ app.include_router(tab2_router)
 # ── Tab 1 Analytics Overview router ─────────────────────────────────────────
 app.include_router(tab1_router)
 
+# ── Tab 3 Analysis router ──────────────────────────────────────────────────
+app.include_router(tab3_router)
+
 
 @app.on_event("startup")
 def _startup_load_modules():
@@ -186,6 +190,12 @@ def _startup_load_modules():
         logger.info("Tab 1 Analytics Overview data loaded successfully.")
     except Exception as exc:
         logger.error("Failed to load Tab 1 Analytics Overview data: %s", exc)
+
+    try:
+        load_tab3_data()
+        logger.info("Tab 3 Analysis data loaded successfully.")
+    except Exception as exc:
+        logger.error("Failed to load Tab 3 Analysis data: %s", exc)
 
 
 # ── In-memory chat sessions ─────────────────────────────────────────────────

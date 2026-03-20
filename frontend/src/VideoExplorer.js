@@ -374,8 +374,8 @@ const VideoExplorer = () => {
       {/* Sidebar Filters */}
       <aside className="explorer-sidebar">
         <div className="sidebar-brand">
-          <div className="logo-box mini">F</div>
-          <span>Frammer AI</span>
+          <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
+          <span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span>
         </div>
 
         <div className="filter-section">
@@ -481,10 +481,10 @@ const VideoExplorer = () => {
 
       {/* Main Content Area */}
       <main className="explorer-main">
-        <header className="explorer-header">
+        {/* <header className="explorer-header">
           <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
           <div className="fork-btn">Fork</div>
-        </header>
+        </header> */}
 
         {/* Top Stats Cards */}
         <div className="explorer-stats-grid">

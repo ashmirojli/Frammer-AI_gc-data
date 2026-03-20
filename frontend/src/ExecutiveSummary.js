@@ -642,8 +642,8 @@ const ExecutiveSummary = () => {
     <div className="dashboard-layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="logo-box mini">F</div>
-          <span>Frammer AI</span>
+          <Link to="/" className="back-btn-mini"><ArrowLeft size={16} /></Link>
+          <span style={{ fontSize: '14px', fontWeight: '800', color: '#ff4d6d' }}>FRAMMER AI</span>
         </div>
         
         <div className="sidebar-section">
@@ -680,7 +680,7 @@ const ExecutiveSummary = () => {
       </aside>
 
       <main className="dashboard-main">
-        <header className="dashboard-header">
+        {/* <header className="dashboard-header">
           <div className="header-left">
              <Link to="/" className="back-btn-mini">
                 <ArrowLeft size={16} />
@@ -697,11 +697,11 @@ const ExecutiveSummary = () => {
             </div>
           </div>
           <div className="header-right">
-            <div className="dropdown">Client <ChevronDown size={14} /></div>
-            <div className="dropdown">Platform <ChevronDown size={14} /></div>
+            <div className="dropdown">Client <ChevronDown size={14} /></div> */}
+            {/* <div className="dropdown">Platform <ChevronDown size={14} /></div>
             <div className="dropdown">User <ChevronDown size={14} /></div>
           </div>
-        </header>
+        </header> */}
 
         {activeSubPage === 'executive' ? (
           <ExecutiveSummaryContent data={kpiData} />
