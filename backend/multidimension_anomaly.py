@@ -15,8 +15,7 @@ Endpoints:
 import os
 import math
 import logging
-from typing import Any, Dict, List, Optional
-from functools import lru_cache
+from typing import Any, Dict
 
 import pandas as pd
 import numpy as np
@@ -28,10 +27,12 @@ logger = logging.getLogger("anomaly")
 
 router = APIRouter(prefix="/api/anomaly", tags=["Multidimension & Anomaly"])
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "StarSchemaDB")
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "StarSchemaDB"
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  Data Loading
+#  Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _data: Dict[str, Any] = {}
@@ -70,6 +71,21 @@ def _load_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(os.path.join(DATA_DIR, name))
 
 
+def _empty_cell() -> dict:
+    return {"count": 0, "created": 0, "published": 0, "duration": 0, "conversion": 0.0}
+
+
+def _add_conversion(d: dict) -> dict:
+    denom = d.get("created", 0) or d.get("count", 0)
+    d["conversion"] = round(d["published"] / denom * 100, 1) if denom > 0 else 0.0
+    return d
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Data Loading
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
 def load_all_data():
     """Load all CSVs into the global _data store."""
     logger.info("Loading StarSchemaDB CSVs for anomaly module...")
@@ -102,6 +118,11 @@ def load_all_data():
     _data["video"] = _load_csv("Fact_Video.csv")
     _data["monthly"] = _load_csv("Fact_Monthly.csv")
 
+    try:
+        _data["user_monthly"] = _load_csv("Fact_User_Monthly.csv")
+    except Exception:
+        _data["user_monthly"] = pd.DataFrame()
+
     for extra in ["Fact_Input_Type.csv", "Fact_Language.csv", "Fact_Output_Type.csv"]:
         key = extra.replace("Fact_", "").replace(".csv", "").lower()
         try:
@@ -109,8 +130,66 @@ def load_all_data():
         except Exception:
             _data[key] = pd.DataFrame()
 
+    _build_user_channel_map()
+    _build_enriched_video()
     _data["dbscan"] = _run_dbscan()
     logger.info("Anomaly module data loaded.")
+
+
+def _build_user_channel_map():
+    """Build user → primary channel mapping and proportional channel weights."""
+    uc = _data["user_channel"]
+    primary = {}
+    proportions = {}
+
+    for uid, group in uc.groupby("User_ID"):
+        uid = int(uid)
+        total = group["Uploaded Count"].sum()
+        best_ch = int(group.loc[group["Uploaded Count"].idxmax(), "Channel_ID"])
+        primary[uid] = best_ch
+
+        if total > 0:
+            proportions[uid] = {
+                int(row["Channel_ID"]): row["Uploaded Count"] / total
+                for _, row in group.iterrows()
+            }
+        else:
+            n = len(group)
+            proportions[uid] = {
+                int(row["Channel_ID"]): 1.0 / n for _, row in group.iterrows()
+            }
+
+    _data["user_primary_channel"] = primary
+    _data["user_channel_proportions"] = proportions
+
+
+def _build_enriched_video():
+    """Create enriched video DataFrame with mapped Channel_ID and InputType_ID."""
+    vdf = _data["video"].copy()
+
+    it_name_to_id = {}
+    for iid, iname in _data["dims"].get("inputtype", {}).items():
+        it_name_to_id[iname.strip().lower()] = iid
+
+    vdf["InputType_ID"] = vdf["Type"].apply(
+        lambda t: it_name_to_id.get(str(t).strip().lower(), 0) if pd.notna(t) else 0
+    )
+
+    for col in ["User_ID", "Team_ID", "Platform_ID"]:
+        vdf[col] = pd.to_numeric(vdf[col], errors="coerce").fillna(0).astype(int)
+
+    primary_ch = _data.get("user_primary_channel", {})
+    vdf["Channel_ID"] = vdf["User_ID"].map(primary_ch).fillna(0).astype(int)
+
+    vdf["is_published"] = vdf["Published"].astype(str).str.strip().str.lower() == "yes"
+
+    _data["enriched_video"] = vdf
+    logger.info(
+        "Enriched video: %d rows, %d with channel, %d with inputtype",
+        len(vdf),
+        (vdf["Channel_ID"] > 0).sum(),
+        (vdf["InputType_ID"] > 0).sum(),
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -118,19 +197,22 @@ def load_all_data():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 DIMENSION_META = {
-    "user":     {"label": "User",     "id_col": "User_ID",       "dim_key": "user"},
-    "channel":  {"label": "Channel",  "id_col": "Channel_ID",    "dim_key": "channel"},
-    "platform": {"label": "Platform", "id_col": "Platform_ID",   "dim_key": "platform"},
-    "team":     {"label": "Team",     "id_col": "Team_ID",       "dim_key": "team"},
-    "inputtype":{"label": "Input Type","id_col": "InputType_ID", "dim_key": "inputtype"},
-    "language": {"label": "Language", "id_col": "Language_ID",    "dim_key": "language"},
-    "month":    {"label": "Month",    "id_col": "Month_ID",      "dim_key": "month"},
-    "outputtype":{"label": "Output Type","id_col":"OutputType_ID","dim_key": "outputtype"},
+    "user":      {"label": "User",       "id_col": "User_ID",       "dim_key": "user"},
+    "channel":   {"label": "Channel",    "id_col": "Channel_ID",    "dim_key": "channel"},
+    "platform":  {"label": "Platform",   "id_col": "Platform_ID",   "dim_key": "platform"},
+    "team":      {"label": "Team",       "id_col": "Team_ID",       "dim_key": "team"},
+    "inputtype": {"label": "Input Type", "id_col": "InputType_ID",  "dim_key": "inputtype"},
+    "language":  {"label": "Language",   "id_col": "Language_ID",    "dim_key": "language"},
+    "month":     {"label": "Month",      "id_col": "Month_ID",      "dim_key": "month"},
+    "outputtype": {"label": "Output Type", "id_col": "OutputType_ID", "dim_key": "outputtype"},
 }
 
 
 def _dim_name(dim_key: str, dim_id: int) -> str:
     return _data["dims"].get(dim_key, {}).get(dim_id, f"Unknown ({dim_id})")
+
+
+_VIDEO_DIMS = {"user", "channel", "platform", "team", "inputtype"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -158,28 +240,59 @@ def _compute_kpis() -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  Matrix Builder
+#  Matrix Builder — Router
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _build_matrix(dim1: str, dim2: str, metric_type: str = "count") -> dict:
-    """Build cross-tab matrix from Fact_User_Channel (user×channel) or Fact_Video."""
-    pair = tuple(sorted([dim1, dim2]))
+    pair = frozenset([dim1, dim2])
 
-    if pair == ("channel", "user"):
-        return _matrix_from_user_channel(dim1, dim2, metric_type)
-    if pair == ("channel", "platform"):
+    if pair == frozenset(["channel", "user"]):
+        return _matrix_from_user_channel(dim1, dim2)
+    if pair == frozenset(["channel", "platform"]):
         return _matrix_from_channel_publishing(dim1, dim2)
-    return _matrix_from_video(dim1, dim2)
+    if pair == frozenset(["user", "month"]):
+        return _matrix_from_user_monthly(dim1, dim2)
+    if "month" in pair and ("channel" in pair or "user" in pair):
+        other = dim1 if dim2 == "month" else dim2
+        if other == "channel":
+            return _matrix_from_channel_monthly(dim1, dim2)
+        return _matrix_from_user_monthly(dim1, dim2)
+
+    if dim1 in _VIDEO_DIMS and dim2 in _VIDEO_DIMS:
+        return _matrix_from_enriched_video(dim1, dim2)
+
+    if "language" in pair or "outputtype" in pair:
+        return _matrix_from_aggregate_dimension(dim1, dim2)
+
+    if "month" in pair:
+        return _matrix_from_month_video(dim1, dim2)
+
+    return _empty_response(dim1, dim2)
 
 
-def _matrix_from_user_channel(dim1, dim2, metric_type):
-    df = _data["user_channel"]
-    col_map = {
-        "count": ("Uploaded Count", "Uploaded Duration (hh:mm:ss)"),
-        "created": ("Created Count", "Created Duration (hh:mm:ss)"),
-        "published": ("Published Count", "Published Duration (hh:mm:ss)"),
+def _empty_response(dim1, dim2):
+    d1_label = DIMENSION_META.get(dim1, {}).get("label", dim1)
+    d2_label = DIMENSION_META.get(dim2, {}).get("label", dim2)
+    return {
+        "matrix": {}, "row_ids": [], "col_ids": [],
+        "row_totals": {}, "col_totals": {},
+        "grand_total": _empty_cell(),
+        "max_count": 0, "max_duration": 0, "max_conversion": 0,
+        "dim1_key": dim1, "dim2_key": dim2,
+        "dim_names": {},
+        "source_tag": f"No granular data for {d1_label} × {d2_label}",
+        "row_count": 0, "col_count": 0,
+        "anomalies": {}, "alerts": [],
+        "unsupported": True,
     }
-    count_col, dur_col = col_map.get(metric_type, col_map["count"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: User × Channel (from Fact_User_Channel)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_user_channel(dim1, dim2):
+    df = _data["user_channel"]
 
     dim1_col = "User_ID" if dim1 == "user" else "Channel_ID"
     dim2_col = "Channel_ID" if dim1 == "user" else "User_ID"
@@ -189,43 +302,51 @@ def _matrix_from_user_channel(dim1, dim2, metric_type):
     matrix = {}
     row_totals = {}
     col_totals = {}
-    grand = {"count": 0, "duration": 0, "published": 0}
+    grand = _empty_cell()
 
     for _, r in df.iterrows():
         rid = int(r[dim1_col])
         cid = int(r[dim2_col])
-        cnt = int(r[count_col]) if count_col in r else 0
-        dur = _parse_duration(r.get(dur_col, 0))
+
+        cnt = int(r.get("Uploaded Count", 0))
+        crt = int(r.get("Created Count", 0))
         pub = int(r.get("Published Count", 0))
+        dur = _parse_duration(r.get("Uploaded Duration (hh:mm:ss)", "0:00:00"))
 
         matrix.setdefault(rid, {})
-        cell = matrix[rid].setdefault(cid, {"count": 0, "duration": 0, "published": 0})
-        cell["count"] += cnt
-        cell["duration"] += dur
-        cell["published"] += pub
+        cell = matrix[rid].setdefault(cid, _empty_cell())
+        cell["count"] += cnt; cell["created"] += crt
+        cell["published"] += pub; cell["duration"] += dur
 
-        rt = row_totals.setdefault(rid, {"count": 0, "duration": 0, "published": 0})
-        rt["count"] += cnt; rt["duration"] += dur; rt["published"] += pub
+        rt = row_totals.setdefault(rid, _empty_cell())
+        rt["count"] += cnt; rt["created"] += crt
+        rt["published"] += pub; rt["duration"] += dur
 
-        ct = col_totals.setdefault(cid, {"count": 0, "duration": 0, "published": 0})
-        ct["count"] += cnt; ct["duration"] += dur; ct["published"] += pub
+        ct = col_totals.setdefault(cid, _empty_cell())
+        ct["count"] += cnt; ct["created"] += crt
+        ct["published"] += pub; ct["duration"] += dur
 
-        grand["count"] += cnt; grand["duration"] += dur; grand["published"] += pub
+        grand["count"] += cnt; grand["created"] += crt
+        grand["published"] += pub; grand["duration"] += dur
 
-    return _format_matrix_response(matrix, row_totals, col_totals, grand, dim1_key, dim2_key, "Pre-Aggregated")
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1_key, dim2_key, "Pre-Aggregated"
+    )
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: Channel × Platform (from Fact_Channel_Publishing)
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def _matrix_from_channel_publishing(dim1, dim2):
     df = _data["channel_publishing"]
     dim1_col = "Channel_ID" if dim1 == "channel" else "Platform_ID"
     dim2_col = "Platform_ID" if dim1 == "channel" else "Channel_ID"
-    dim1_key = dim1
-    dim2_key = dim2
 
     matrix = {}
     row_totals = {}
     col_totals = {}
-    grand = {"count": 0, "duration": 0, "published": 0}
+    grand = _empty_cell()
 
     for _, r in df.iterrows():
         rid = int(r[dim1_col])
@@ -234,107 +355,405 @@ def _matrix_from_channel_publishing(dim1, dim2):
         dur = _parse_duration(r.get("Published_Duration", 0))
 
         matrix.setdefault(rid, {})
-        cell = matrix[rid].setdefault(cid, {"count": 0, "duration": 0, "published": 0})
-        cell["count"] += cnt; cell["duration"] += dur; cell["published"] += cnt
+        cell = matrix[rid].setdefault(cid, _empty_cell())
+        cell["count"] += cnt; cell["created"] += cnt
+        cell["published"] += cnt; cell["duration"] += dur
 
-        rt = row_totals.setdefault(rid, {"count": 0, "duration": 0, "published": 0})
-        rt["count"] += cnt; rt["duration"] += dur; rt["published"] += cnt
+        rt = row_totals.setdefault(rid, _empty_cell())
+        rt["count"] += cnt; rt["created"] += cnt
+        rt["published"] += cnt; rt["duration"] += dur
 
-        ct = col_totals.setdefault(cid, {"count": 0, "duration": 0, "published": 0})
-        ct["count"] += cnt; ct["duration"] += dur; ct["published"] += cnt
+        ct = col_totals.setdefault(cid, _empty_cell())
+        ct["count"] += cnt; ct["created"] += cnt
+        ct["published"] += cnt; ct["duration"] += dur
 
-        grand["count"] += cnt; grand["duration"] += dur; grand["published"] += cnt
+        grand["count"] += cnt; grand["created"] += cnt
+        grand["published"] += cnt; grand["duration"] += dur
 
-    return _format_matrix_response(matrix, row_totals, col_totals, grand, dim1_key, dim2_key, "Pre-Aggregated")
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1, dim2, "Pre-Aggregated"
+    )
 
 
-def _matrix_from_video(dim1, dim2):
-    df = _data["video"]
-    vid_dim_map = {
-        "user": "User_ID", "channel": None, "platform": "Platform_ID",
-        "team": "Team_ID",
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: Video-derived (user, channel, platform, team, inputtype)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_enriched_video(dim1, dim2):
+    vdf = _data.get("enriched_video")
+    if vdf is None or vdf.empty:
+        return _empty_response(dim1, dim2)
+
+    dim_col = {
+        "user": "User_ID", "channel": "Channel_ID",
+        "platform": "Platform_ID", "team": "Team_ID",
+        "inputtype": "InputType_ID",
     }
 
-    uc = _data["user_channel"]
-    user_channel_map = {}
-    for _, r in uc.iterrows():
-        uid = int(r["User_ID"])
-        cid = int(r["Channel_ID"])
-        user_channel_map.setdefault(uid, []).append(cid)
-    user_ch_idx = {}
+    c1, c2 = dim_col.get(dim1), dim_col.get(dim2)
+    if not c1 or not c2:
+        return _empty_response(dim1, dim2)
+
+    valid = vdf[(vdf[c1] > 0) & (vdf[c2] > 0)].copy()
+    if valid.empty:
+        return _empty_response(dim1, dim2)
+
+    grouped = valid.groupby([c1, c2]).agg(
+        count=("is_published", "size"),
+        published=("is_published", "sum"),
+    ).reset_index()
 
     matrix = {}
     row_totals = {}
     col_totals = {}
-    grand = {"count": 0, "published": 0}
+    grand = _empty_cell()
 
-    for _, r in df.iterrows():
-        uid = int(r.get("User_ID", 0)) if not pd.isna(r.get("User_ID")) else 0
-        pub = str(r.get("Published", "")).strip().lower() == "yes"
-
-        vid_dims = {
-            "user": uid,
-            "platform": int(float(r.get("Platform_ID", 0))) if not pd.isna(r.get("Platform_ID")) else 0,
-            "team": int(r.get("Team_ID", 0)) if not pd.isna(r.get("Team_ID")) else 0,
-        }
-
-        if uid in user_channel_map and user_channel_map[uid]:
-            idx = user_ch_idx.get(uid, 0)
-            vid_dims["channel"] = user_channel_map[uid][idx % len(user_channel_map[uid])]
-            user_ch_idx[uid] = idx + 1
-        else:
-            vid_dims["channel"] = 0
-
-        rid = vid_dims.get(dim1, 0)
-        cid = vid_dims.get(dim2, 0)
-        if not rid or not cid:
-            continue
+    for _, r in grouped.iterrows():
+        rid = int(r[c1])
+        cid = int(r[c2])
+        cnt = int(r["count"])
+        pub = int(r["published"])
 
         matrix.setdefault(rid, {})
-        cell = matrix[rid].setdefault(cid, {"count": 0, "published": 0})
-        cell["count"] += 1
-        if pub:
-            cell["published"] += 1
+        cell = matrix[rid].setdefault(cid, _empty_cell())
+        cell["count"] += cnt; cell["created"] += cnt; cell["published"] += pub
 
-        rt = row_totals.setdefault(rid, {"count": 0, "published": 0})
-        rt["count"] += 1
-        if pub:
-            rt["published"] += 1
+        rt = row_totals.setdefault(rid, _empty_cell())
+        rt["count"] += cnt; rt["created"] += cnt; rt["published"] += pub
 
-        ct = col_totals.setdefault(cid, {"count": 0, "published": 0})
-        ct["count"] += 1
-        if pub:
-            ct["published"] += 1
+        ct = col_totals.setdefault(cid, _empty_cell())
+        ct["count"] += cnt; ct["created"] += cnt; ct["published"] += pub
 
-        grand["count"] += 1
-        if pub:
-            grand["published"] += 1
+        grand["count"] += cnt; grand["created"] += cnt; grand["published"] += pub
 
-    return _format_matrix_response(matrix, row_totals, col_totals, grand, dim1, dim2, "Video-Level Aggregation")
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1, dim2, "Video-Level Aggregation"
+    )
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: User × Month (from Fact_User_Monthly)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_user_monthly(dim1, dim2):
+    um = _data.get("user_monthly")
+    if um is None or um.empty:
+        return _empty_response(dim1, dim2)
+
+    is_user_dim1 = (dim1 == "user")
+
+    matrix = {}
+    row_totals = {}
+    col_totals = {}
+    grand = _empty_cell()
+
+    for _, r in um.iterrows():
+        uid = int(r["User_ID"])
+        mid = int(r["Month_ID"])
+        cnt = int(r.get("Uploaded Count", 0))
+        crt = int(r.get("Created Count", 0))
+        pub = int(r.get("Published Count", 0))
+        dur = int(float(r.get("Uploaded Duration", 0)))
+
+        rid = uid if is_user_dim1 else mid
+        cid = mid if is_user_dim1 else uid
+
+        matrix.setdefault(rid, {})
+        cell = matrix[rid].setdefault(cid, _empty_cell())
+        cell["count"] += cnt; cell["created"] += crt
+        cell["published"] += pub; cell["duration"] += dur
+
+        rt = row_totals.setdefault(rid, _empty_cell())
+        rt["count"] += cnt; rt["created"] += crt
+        rt["published"] += pub; rt["duration"] += dur
+
+        ct = col_totals.setdefault(cid, _empty_cell())
+        ct["count"] += cnt; ct["created"] += crt
+        ct["published"] += pub; ct["duration"] += dur
+
+        grand["count"] += cnt; grand["created"] += crt
+        grand["published"] += pub; grand["duration"] += dur
+
+    dim1_key = "user" if is_user_dim1 else "month"
+    dim2_key = "month" if is_user_dim1 else "user"
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1_key, dim2_key, "Monthly"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: Channel × Month (Fact_User_Monthly + User→Channel proportions)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_channel_monthly(dim1, dim2):
+    um = _data.get("user_monthly")
+    if um is None or um.empty:
+        return _empty_response(dim1, dim2)
+
+    proportions = _data.get("user_channel_proportions", {})
+    is_channel_dim1 = (dim1 == "channel")
+
+    matrix = {}
+    row_totals = {}
+    col_totals = {}
+    grand = _empty_cell()
+
+    for _, r in um.iterrows():
+        uid = int(r["User_ID"])
+        mid = int(r["Month_ID"])
+        cnt = int(r.get("Uploaded Count", 0))
+        crt = int(r.get("Created Count", 0))
+        pub = int(r.get("Published Count", 0))
+        dur = int(float(r.get("Uploaded Duration", 0)))
+
+        user_channels = proportions.get(uid, {})
+        if not user_channels:
+            continue
+
+        for chid, prop in user_channels.items():
+            a_cnt = round(cnt * prop)
+            a_crt = round(crt * prop)
+            a_pub = round(pub * prop)
+            a_dur = round(dur * prop)
+
+            rid = chid if is_channel_dim1 else mid
+            cid = mid if is_channel_dim1 else chid
+
+            matrix.setdefault(rid, {})
+            cell = matrix[rid].setdefault(cid, _empty_cell())
+            cell["count"] += a_cnt; cell["created"] += a_crt
+            cell["published"] += a_pub; cell["duration"] += a_dur
+
+            rt = row_totals.setdefault(rid, _empty_cell())
+            rt["count"] += a_cnt; rt["created"] += a_crt
+            rt["published"] += a_pub; rt["duration"] += a_dur
+
+            ct = col_totals.setdefault(cid, _empty_cell())
+            ct["count"] += a_cnt; ct["created"] += a_crt
+            ct["published"] += a_pub; ct["duration"] += a_dur
+
+            grand["count"] += a_cnt; grand["created"] += a_crt
+            grand["published"] += a_pub; grand["duration"] += a_dur
+
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1, dim2, "Derived Monthly"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: Aggregate-only dims (language, outputtype) × any other
+#  Uses per-dimension aggregate facts + proportional distribution
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_aggregate_dimension(dim1, dim2):
+    """
+    For language/outputtype cross-tabs, derive from aggregate fact tables
+    combined with the other dimension's breakdown. Counts are distributed
+    proportionally (approximate but meaningful).
+    """
+    agg_dim = dim1 if dim1 in ("language", "outputtype") else dim2
+    other_dim = dim2 if agg_dim == dim1 else dim1
+
+    agg_table_map = {"language": "language", "outputtype": "output_type"}
+    agg_id_map = {"language": "Language_ID", "outputtype": "OutputType_ID"}
+
+    agg_df = _data.get(agg_table_map.get(agg_dim), pd.DataFrame())
+    if agg_df.empty:
+        return _empty_response(dim1, dim2)
+
+    agg_id_col = agg_id_map[agg_dim]
+
+    agg_totals = {}
+    agg_grand = {"count": 0, "created": 0, "published": 0, "duration": 0}
+    for _, r in agg_df.iterrows():
+        aid = int(r[agg_id_col])
+        cnt = int(r.get("Uploaded Count", 0))
+        crt = int(r.get("Created Count", 0))
+        pub = int(r.get("Published Count", 0))
+        dur = _parse_duration(r.get("Uploaded Duration (hh:mm:ss)", "0:00:00"))
+        agg_totals[aid] = {"count": cnt, "created": crt, "published": pub, "duration": dur}
+        agg_grand["count"] += cnt
+        agg_grand["created"] += crt
+        agg_grand["published"] += pub
+        agg_grand["duration"] += dur
+
+    other_breakdown = _get_breakdown(other_dim)
+    if not other_breakdown:
+        return _empty_response(dim1, dim2)
+
+    other_grand_count = sum(b.get("uploaded", 0) for b in other_breakdown)
+    if other_grand_count == 0:
+        return _empty_response(dim1, dim2)
+
+    matrix = {}
+    row_totals = {}
+    col_totals = {}
+    grand = _empty_cell()
+
+    for aid, atotals in agg_totals.items():
+        for bitem in other_breakdown:
+            bid = bitem["id"]
+            b_prop = bitem["uploaded"] / other_grand_count
+
+            a_cnt = round(atotals["count"] * b_prop)
+            a_crt = round(atotals["created"] * b_prop)
+            a_pub = round(atotals["published"] * b_prop)
+            a_dur = round(atotals["duration"] * b_prop)
+
+            if agg_dim == dim1:
+                rid, cid = aid, bid
+            else:
+                rid, cid = bid, aid
+
+            matrix.setdefault(rid, {})
+            cell = matrix[rid].setdefault(cid, _empty_cell())
+            cell["count"] += a_cnt; cell["created"] += a_crt
+            cell["published"] += a_pub; cell["duration"] += a_dur
+
+            rt = row_totals.setdefault(rid, _empty_cell())
+            rt["count"] += a_cnt; rt["created"] += a_crt
+            rt["published"] += a_pub; rt["duration"] += a_dur
+
+            ct = col_totals.setdefault(cid, _empty_cell())
+            ct["count"] += a_cnt; ct["created"] += a_crt
+            ct["published"] += a_pub; ct["duration"] += a_dur
+
+            grand["count"] += a_cnt; grand["created"] += a_crt
+            grand["published"] += a_pub; grand["duration"] += a_dur
+
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1, dim2, "Proportional Estimate"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Matrix: Month × video-derivable dim (platform, team, inputtype)
+#  Uses Fact_User_Monthly + enriched video proportions
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _matrix_from_month_video(dim1, dim2):
+    """
+    For month × platform/team/inputtype: distribute monthly user counts
+    across the other dimension proportionally based on video data.
+    """
+    um = _data.get("user_monthly")
+    vdf = _data.get("enriched_video")
+    if um is None or um.empty or vdf is None or vdf.empty:
+        return _empty_response(dim1, dim2)
+
+    month_dim = "month"
+    other_dim = dim1 if dim2 == "month" else dim2
+
+    dim_col = {
+        "platform": "Platform_ID", "team": "Team_ID", "inputtype": "InputType_ID",
+    }
+    other_col = dim_col.get(other_dim)
+    if not other_col:
+        return _empty_response(dim1, dim2)
+
+    user_dim_props = {}
+    for uid, group in vdf[vdf[other_col] > 0].groupby("User_ID"):
+        uid = int(uid)
+        dim_counts = group[other_col].value_counts()
+        total = dim_counts.sum()
+        if total > 0:
+            user_dim_props[uid] = {int(k): v / total for k, v in dim_counts.items()}
+
+    is_month_dim1 = (dim1 == "month")
+    matrix = {}
+    row_totals = {}
+    col_totals = {}
+    grand = _empty_cell()
+
+    for _, r in um.iterrows():
+        uid = int(r["User_ID"])
+        mid = int(r["Month_ID"])
+        cnt = int(r.get("Uploaded Count", 0))
+        crt = int(r.get("Created Count", 0))
+        pub = int(r.get("Published Count", 0))
+        dur = int(float(r.get("Uploaded Duration", 0)))
+
+        props = user_dim_props.get(uid, {})
+        if not props:
+            continue
+
+        for dim_id, prop in props.items():
+            a_cnt = round(cnt * prop)
+            a_crt = round(crt * prop)
+            a_pub = round(pub * prop)
+            a_dur = round(dur * prop)
+
+            rid = mid if is_month_dim1 else dim_id
+            cid = dim_id if is_month_dim1 else mid
+
+            matrix.setdefault(rid, {})
+            cell = matrix[rid].setdefault(cid, _empty_cell())
+            cell["count"] += a_cnt; cell["created"] += a_crt
+            cell["published"] += a_pub; cell["duration"] += a_dur
+
+            rt = row_totals.setdefault(rid, _empty_cell())
+            rt["count"] += a_cnt; rt["created"] += a_crt
+            rt["published"] += a_pub; rt["duration"] += a_dur
+
+            ct = col_totals.setdefault(cid, _empty_cell())
+            ct["count"] += a_cnt; ct["created"] += a_crt
+            ct["published"] += a_pub; ct["duration"] += a_dur
+
+            grand["count"] += a_cnt; grand["created"] += a_crt
+            grand["published"] += a_pub; grand["duration"] += a_dur
+
+    return _format_matrix_response(
+        matrix, row_totals, col_totals, grand, dim1, dim2, "Derived Monthly"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Format Matrix Response (common)
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def _format_matrix_response(matrix, row_totals, col_totals, grand, dim1_key, dim2_key, source_tag):
+    for rid in matrix:
+        for cid in matrix[rid]:
+            _add_conversion(matrix[rid][cid])
+    for k in row_totals:
+        _add_conversion(row_totals[k])
+    for k in col_totals:
+        _add_conversion(col_totals[k])
+    _add_conversion(grand)
+
     row_ids = sorted(row_totals.keys(), key=lambda k: -(row_totals[k].get("count", 0)))
     col_ids = set()
     for r in matrix.values():
         col_ids.update(r.keys())
     col_ids = sorted(col_ids, key=lambda k: -(col_totals.get(k, {}).get("count", 0)))
 
-    max_val = 0
+    max_count = 0
+    max_duration = 0
+    max_conversion = 0.0
     for rid in row_ids:
         for cid in col_ids:
             cell = matrix.get(rid, {}).get(cid)
             if cell:
-                max_val = max(max_val, cell.get("count", 0))
+                max_count = max(max_count, cell.get("count", 0))
+                max_duration = max(max_duration, cell.get("duration", 0))
+                max_conversion = max(max_conversion, cell.get("conversion", 0.0))
 
     formatted_matrix = {}
     for rid in row_ids:
         formatted_matrix[str(rid)] = {}
         for cid in col_ids:
-            cell = matrix.get(rid, {}).get(cid, {"count": 0, "published": 0})
+            cell = matrix.get(rid, {}).get(cid, _empty_cell())
             formatted_matrix[str(rid)][str(cid)] = {k: _safe(v) for k, v in cell.items()}
 
-    anomalies, alerts = _detect_anomalies(matrix, row_totals, col_totals, row_ids, col_ids, dim1_key, dim2_key)
+    dim_names = {}
+    for rid in row_ids:
+        dim_names[f"row_{rid}"] = _dim_name(dim1_key, rid)
+    for cid in col_ids:
+        dim_names[f"col_{cid}"] = _dim_name(dim2_key, cid)
+
+    anomalies, alerts = _detect_anomalies(
+        matrix, row_totals, col_totals, row_ids, col_ids, dim1_key, dim2_key
+    )
 
     return {
         "matrix": formatted_matrix,
@@ -343,9 +762,12 @@ def _format_matrix_response(matrix, row_totals, col_totals, grand, dim1_key, dim
         "row_totals": {str(k): {kk: _safe(vv) for kk, vv in v.items()} for k, v in row_totals.items()},
         "col_totals": {str(k): {kk: _safe(vv) for kk, vv in v.items()} for k, v in col_totals.items()},
         "grand_total": {k: _safe(v) for k, v in grand.items()},
-        "max_val": _safe(max_val),
+        "max_count": _safe(max_count),
+        "max_duration": _safe(max_duration),
+        "max_conversion": _safe(max_conversion),
         "dim1_key": dim1_key,
         "dim2_key": dim2_key,
+        "dim_names": dim_names,
         "source_tag": source_tag,
         "row_count": len(row_ids),
         "col_count": len(col_ids),
@@ -430,7 +852,6 @@ def _detect_anomalies(matrix, row_totals, col_totals, row_ids, col_ids, dim1_key
                                    "message": f"{rn} × {cn} is unusually low — {val:,} ({abs(global_z):.1f}σ below)",
                                    "row_id": _safe(rid), "col_id": _safe(cid)})
 
-    # Row-level anomalies
     row_total_vals = [row_totals.get(rid, {}).get("count", 0) for rid in row_ids]
     rt_stats = _calc_stats(row_total_vals)
     if rt_stats["std"] > 0:
@@ -471,7 +892,9 @@ def _run_dbscan() -> dict:
             df[new_col] = df[col].apply(_parse_duration)
             feature_cols.append(new_col)
 
-    df["conversion_rate"] = np.where(df["Created Count"] > 0, df["Published Count"] / df["Created Count"], 0)
+    df["conversion_rate"] = np.where(
+        df["Created Count"] > 0, df["Published Count"] / df["Created Count"], 0
+    )
     feature_cols.append("conversion_rate")
 
     X = df[feature_cols].fillna(0).values
@@ -495,7 +918,9 @@ def _run_dbscan() -> dict:
         }
 
     labels = ["Power Users", "Active Users", "Moderate Users", "Light Users", "Minimal Users"]
-    sorted_c = sorted([c for c in clusters.values() if not c["is_noise"]], key=lambda x: -x["avg_uploaded"])
+    sorted_c = sorted(
+        [c for c in clusters.values() if not c["is_noise"]], key=lambda x: -x["avg_uploaded"]
+    )
     for i, c in enumerate(sorted_c):
         clusters[c["id"]]["label"] = labels[i] if i < len(labels) else f"Group {i+1}"
     if -1 in clusters:
@@ -517,15 +942,18 @@ def _run_dbscan() -> dict:
             "conversion_rate": round(float(row["conversion_rate"]) * 100, 2),
         })
 
-    # Channel clustering
     ch_agg = _data["user_channel"].groupby("Channel_ID").agg({
         "Uploaded Count": "sum", "Created Count": "sum", "Published Count": "sum",
     }).reset_index()
-    ch_agg["conversion_rate"] = np.where(ch_agg["Created Count"] > 0, ch_agg["Published Count"] / ch_agg["Created Count"], 0)
+    ch_agg["conversion_rate"] = np.where(
+        ch_agg["Created Count"] > 0, ch_agg["Published Count"] / ch_agg["Created Count"], 0
+    )
 
     if len(ch_agg) >= 3:
         X_ch = ch_agg[["Uploaded Count", "Created Count", "Published Count", "conversion_rate"]].values
-        ch_agg["cluster"] = DBSCAN(eps=1.5, min_samples=2).fit_predict(StandardScaler().fit_transform(X_ch))
+        ch_agg["cluster"] = DBSCAN(eps=1.5, min_samples=2).fit_predict(
+            StandardScaler().fit_transform(X_ch)
+        )
     else:
         ch_agg["cluster"] = 0
 
@@ -559,7 +987,7 @@ def _run_dbscan() -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  Breakdown
+#  Breakdown (extended for all dimensions)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _get_breakdown(dim_key: str) -> list:
@@ -572,8 +1000,10 @@ def _get_breakdown(dim_key: str) -> list:
             cr = int(r["Created Count"])
             pb = int(r["Published Count"])
             conv = round(pb / cr * 100, 1) if cr > 0 else 0
-            rows.append({"id": uid, "name": _dim_name("user", uid),
-                         "uploaded": up, "created": cr, "published": pb, "conversion": conv})
+            rows.append({
+                "id": uid, "name": _dim_name("user", uid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
         return sorted(rows, key=lambda x: -x["uploaded"])
 
     if dim_key == "channel":
@@ -587,8 +1017,110 @@ def _get_breakdown(dim_key: str) -> list:
             cr = int(r["Created Count"])
             pb = int(r["Published Count"])
             conv = round(pb / cr * 100, 1) if cr > 0 else 0
-            rows.append({"id": cid, "name": _dim_name("channel", cid),
-                         "uploaded": up, "created": cr, "published": pb, "conversion": conv})
+            rows.append({
+                "id": cid, "name": _dim_name("channel", cid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "inputtype":
+        df = _data.get("input_type", pd.DataFrame())
+        if df.empty:
+            return []
+        rows = []
+        for _, r in df.iterrows():
+            iid = int(r["InputType_ID"])
+            up = int(r.get("Uploaded Count", 0))
+            cr = int(r.get("Created Count", 0))
+            pb = int(r.get("Published Count", 0))
+            conv = round(pb / cr * 100, 1) if cr > 0 else 0
+            rows.append({
+                "id": iid, "name": _dim_name("inputtype", iid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "platform":
+        df = _data["channel_publishing"].groupby("Platform_ID").agg({
+            "Published_Count": "sum",
+        }).reset_index()
+        rows = []
+        for _, r in df.iterrows():
+            pid = int(r["Platform_ID"])
+            pub = int(r["Published_Count"])
+            rows.append({
+                "id": pid, "name": _dim_name("platform", pid),
+                "uploaded": pub, "created": pub, "published": pub, "conversion": 100.0,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "language":
+        df = _data.get("language", pd.DataFrame())
+        if df.empty:
+            return []
+        rows = []
+        for _, r in df.iterrows():
+            lid = int(r["Language_ID"])
+            up = int(r.get("Uploaded Count", 0))
+            cr = int(r.get("Created Count", 0))
+            pb = int(r.get("Published Count", 0))
+            conv = round(pb / cr * 100, 1) if cr > 0 else 0
+            rows.append({
+                "id": lid, "name": _dim_name("language", lid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "month":
+        df = _data["monthly"]
+        rows = []
+        for _, r in df.iterrows():
+            mid = int(r["Month_ID"])
+            up = int(r.get("Total Uploaded", 0))
+            cr = int(r.get("Total Created", 0))
+            pb = int(r.get("Total Published", 0))
+            conv = round(pb / cr * 100, 1) if cr > 0 else 0
+            rows.append({
+                "id": mid, "name": _dim_name("month", mid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "outputtype":
+        df = _data.get("output_type", pd.DataFrame())
+        if df.empty:
+            return []
+        rows = []
+        for _, r in df.iterrows():
+            oid = int(r["OutputType_ID"])
+            up = int(r.get("Uploaded Count", 0))
+            cr = int(r.get("Created Count", 0))
+            pb = int(r.get("Published Count", 0))
+            conv = round(pb / cr * 100, 1) if cr > 0 else 0
+            rows.append({
+                "id": oid, "name": _dim_name("outputtype", oid),
+                "uploaded": up, "created": cr, "published": pb, "conversion": conv,
+            })
+        return sorted(rows, key=lambda x: -x["uploaded"])
+
+    if dim_key == "team":
+        vdf = _data.get("enriched_video", pd.DataFrame())
+        if vdf.empty:
+            return []
+        grouped = vdf[vdf["Team_ID"] > 0].groupby("Team_ID").agg(
+            count=("is_published", "size"),
+            published=("is_published", "sum"),
+        ).reset_index()
+        rows = []
+        for _, r in grouped.iterrows():
+            tid = int(r["Team_ID"])
+            cnt = int(r["count"])
+            pub = int(r["published"])
+            conv = round(pub / cnt * 100, 1) if cnt > 0 else 0
+            rows.append({
+                "id": tid, "name": _dim_name("team", tid),
+                "uploaded": cnt, "created": cnt, "published": pub, "conversion": conv,
+            })
         return sorted(rows, key=lambda x: -x["uploaded"])
 
     return []
@@ -618,7 +1150,7 @@ def get_kpis():
 def get_matrix(
     dim1: str = Query("channel", description="Row dimension"),
     dim2: str = Query("user", description="Column dimension"),
-    metric: str = Query("count", description="Metric type: count, created, published"),
+    metric: str = Query("count", description="Metric type: count, duration, conversion"),
 ):
     return _build_matrix(dim1, dim2, metric)
 

@@ -5,6 +5,13 @@ const API = 'http://localhost:8000/api/anomaly';
 
 const fmtNum = (n) => (n == null ? '0' : Number(n).toLocaleString());
 
+const fmtDuration = (secs) => {
+  if (!secs || secs <= 0) return '0m';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
 const ICON_MAP = {
   star:       <Star size={14} fill="#facc15" stroke="#facc15" />,
   dot_green:  <span className="mdx-alert-dot" style={{ backgroundColor: '#00c864' }} />,
@@ -93,6 +100,7 @@ const MultidimensionAnomaly = () => {
   const anomalies = matrixData?.anomalies || {};
   const highAlerts = alerts.filter(a => a.severity >= 3);
   const lowAlerts = alerts.filter(a => a.severity < 3);
+  const isUnsupported = matrixData?.unsupported;
 
   return (
     <div className="analytics-content mdx-root">
@@ -200,7 +208,7 @@ const MultidimensionAnomaly = () => {
                 <div className="mdx-alerts-group">
                   <p className="mdx-alerts-group-label">OBSERVATIONS</p>
                   {lowAlerts.slice(0, 6).map((a, i) => (
-                    <div key={i} className={`mdx-alert-item neutral`}>
+                    <div key={i} className="mdx-alert-item neutral">
                       {ICON_MAP[a.icon] || null}
                       <span>{a.message}</span>
                     </div>
@@ -213,7 +221,20 @@ const MultidimensionAnomaly = () => {
       )}
 
       {/* Matrix */}
-      {matrixData && <MatrixTable data={matrixData} anomalies={anomalies} dim1Label={dimLabel(dim1)} dim2Label={dimLabel(dim2)} />}
+      {isUnsupported ? (
+        <div className="mdx-matrix-section" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>
+          <p style={{ fontSize: 16, marginBottom: 8 }}>Cross-tabulation not available for this dimension pair.</p>
+          <p style={{ fontSize: 12, color: '#555' }}>{matrixData?.source_tag}</p>
+        </div>
+      ) : matrixData ? (
+        <MatrixTable
+          data={matrixData}
+          anomalies={anomalies}
+          dim1Label={dimLabel(dim1)}
+          dim2Label={dimLabel(dim2)}
+          metricType={metricType}
+        />
+      ) : null}
 
       {/* Breakdowns */}
       <div className="mdx-breakdown-grid">
@@ -231,14 +252,43 @@ const MultidimensionAnomaly = () => {
 //  Matrix Table
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const MatrixTable = ({ data, anomalies, dim1Label, dim2Label }) => {
-  const { matrix, row_ids, col_ids, row_totals, col_totals, grand_total, max_val, source_tag } = data;
+const MatrixTable = ({ data, anomalies, dim1Label, dim2Label, metricType }) => {
+  const {
+    matrix, row_ids, col_ids, row_totals, col_totals, grand_total,
+    max_count, max_duration, max_conversion, source_tag, dim_names,
+  } = data;
   const anomalyCount = Object.keys(anomalies).length;
+  const names = dim_names || {};
+
+  const getMax = () => {
+    if (metricType === 'duration') return max_duration || 0;
+    if (metricType === 'conversion') return max_conversion || 0;
+    return max_count || 0;
+  };
+
+  const getCellValue = (cell) => {
+    if (!cell) return 0;
+    if (metricType === 'duration') return cell.duration || 0;
+    if (metricType === 'conversion') return cell.conversion || 0;
+    return cell.count || 0;
+  };
+
+  const formatValue = (val) => {
+    if (val == null) return '—';
+    if (metricType === 'duration') return val > 0 ? fmtDuration(val) : '—';
+    if (metricType === 'conversion') return val > 0 ? `${val}%` : '—';
+    return val > 0 ? fmtNum(val) : '—';
+  };
+
+  const maxVal = getMax();
 
   const heatLevel = (val) => {
-    if (!val || !max_val) return 0;
-    return Math.round((val / max_val) * 10);
+    if (!val || !maxVal) return 0;
+    return Math.round((val / maxVal) * 10);
   };
+
+  const rowName = (rid) => names[`row_${rid}`] || String(rid);
+  const colName = (cid) => names[`col_${cid}`] || String(cid);
 
   return (
     <div className="mdx-matrix-section">
@@ -258,17 +308,17 @@ const MatrixTable = ({ data, anomalies, dim1Label, dim2Label }) => {
           <thead>
             <tr>
               <th className="mdx-sticky-col">{dim1Label} ↓ / {dim2Label} →</th>
-              {col_ids.map(cid => <th key={cid}>{cid}</th>)}
+              {col_ids.map(cid => <th key={cid}>{colName(cid)}</th>)}
               <th className="mdx-total-col">Total</th>
             </tr>
           </thead>
           <tbody>
             {row_ids.map(rid => (
               <tr key={rid}>
-                <td className="mdx-sticky-col">{rid}</td>
+                <td className="mdx-sticky-col">{rowName(rid)}</td>
                 {col_ids.map(cid => {
                   const cell = matrix?.[String(rid)]?.[String(cid)] || {};
-                  const val = cell.count || 0;
+                  const val = getCellValue(cell);
                   const heat = heatLevel(val);
                   const aKey = `${rid}_${cid}`;
                   const anomaly = anomalies[aKey];
@@ -286,20 +336,20 @@ const MatrixTable = ({ data, anomalies, dim1Label, dim2Label }) => {
                   }
                   return (
                     <td key={cid} className={`mdx-heat-cell mdx-heat-${heat}${anomalyClass}`}
-                        title={`${rid} × ${cid}: ${fmtNum(val)}`}>
-                      {anomalyIcon}{val > 0 ? fmtNum(val) : '—'}
+                        title={`${rowName(rid)} × ${colName(cid)}: ${formatValue(val)}`}>
+                      {anomalyIcon}{formatValue(val)}
                     </td>
                   );
                 })}
-                <td className="mdx-total-col">{fmtNum(row_totals?.[String(rid)]?.count || 0)}</td>
+                <td className="mdx-total-col">{formatValue(getCellValue(row_totals?.[String(rid)]))}</td>
               </tr>
             ))}
             <tr className="mdx-total-row">
               <td className="mdx-sticky-col"><strong>Total</strong></td>
               {col_ids.map(cid => (
-                <td key={cid}>{fmtNum(col_totals?.[String(cid)]?.count || 0)}</td>
+                <td key={cid}>{formatValue(getCellValue(col_totals?.[String(cid)]))}</td>
               ))}
-              <td className="mdx-total-col"><strong>{fmtNum(grand_total?.count || 0)}</strong></td>
+              <td className="mdx-total-col"><strong>{formatValue(getCellValue(grand_total))}</strong></td>
             </tr>
           </tbody>
         </table>
@@ -375,7 +425,7 @@ const MLInsights = ({ data }) => {
   return (
     <div className="mdx-ml-section">
       <div className="mdx-ml-header">
-        <span className="mdx-ml-icon">🧠</span>
+        <span className="mdx-ml-icon">&#129504;</span>
         <div>
           <h3>ML-Powered Insights</h3>
           <p>scikit-learn Backend</p>

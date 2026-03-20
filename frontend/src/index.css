@@ -4870,7 +4870,7 @@ body {
 .mdx-ml-explanation strong { color: #e11d48; }
 
 .mdx-cluster-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
 }
 .mdx-cluster-card {
   background: #151515; border: 1px solid rgba(255,255,255,0.06);

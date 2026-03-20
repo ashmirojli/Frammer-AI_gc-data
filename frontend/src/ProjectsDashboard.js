@@ -5,7 +5,7 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import {
-  ArrowLeft, Search, Bell, Grid, FileText, Globe, Zap, Clock, Database, BarChart2, TrendingUp, Activity, HelpCircle
+  ArrowLeft, Search, Bell, Grid, FileText, Globe, Zap, Clock, Database, BarChart2, TrendingUp, Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -771,7 +771,6 @@ const ProjectsDashboard = () => {
           </div>
         </header> */}
         <div className="projects-scroll-area">{renderActiveTab()}</div>
-        <div className="help-fab mini"><HelpCircle size={20} /></div>
       </main>
     </div>
   );

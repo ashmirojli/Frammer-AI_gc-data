@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { 
   Activity, Share2, Lightbulb, Search, 
-  ChevronDown, ExternalLink, HelpCircle, ArrowLeft,
+  ChevronDown, ExternalLink, ArrowLeft,
   Share, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -713,9 +713,6 @@ const ExecutiveSummary = () => {
           <RecommendationsContent />
         )}
 
-        <div className="help-fab">
-          <HelpCircle size={24} />
-        </div>
       </main>
     </div>
   );

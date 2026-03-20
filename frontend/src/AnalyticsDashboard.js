@@ -4,7 +4,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, ScatterChart, Scatter, Line
 } from 'recharts';
 import { 
-  ArrowLeft, Search, Bell, Grid, FileText, Users, HelpCircle, FileDown, MoreHorizontal
+  ArrowLeft, Search, Bell, Grid, FileText, Users, FileDown, MoreHorizontal
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MultidimensionAnomaly from './MultidimensionAnomaly';
@@ -459,9 +459,6 @@ const AnalyticsDashboard = () => {
           )}
         </div>
         
-        <div className="help-fab mini">
-          <HelpCircle size={20} />
-        </div>
       </main>
     </div>
   );

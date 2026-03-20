@@ -4,7 +4,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, ComposedChart, Area
 } from 'recharts';
 import { 
-  Activity, HelpCircle, ArrowLeft, TrendingUp, TrendingDown, Bot, Users, User
+  Activity, ArrowLeft, TrendingUp, TrendingDown, Bot, Users, User
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -457,9 +457,6 @@ const AnalyticsOverview = () => {
           ))}
         </div>
 
-        <div className="help-fab" style={{ position: 'fixed' }}>
-          <HelpCircle size={24} />
-        </div>
       </main>
     </div>
   );
