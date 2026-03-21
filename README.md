@@ -59,11 +59,12 @@ At a high level, the solution has 5 layers:
 ## 4. Repository Structure
 
 ```text
-gcdashboards/
+GCData_Analytics/
 ├── frontend/                 # React application
 ├── backend/                  # FastAPI app, agents, RAG, ETL, analytics APIs
 ├── StarSchemaDB/             # Star-schema CSV model
 ├── Dataset/                  # Raw/working datasets and intermediate exports
+├── Dockerfile                # Multi-stage Docker build for backend
 ├── requirements.txt          # General/root Python dependencies
 └── README.md
 ```
@@ -365,16 +366,16 @@ Actions currently map to output types such as:
 
 ```mermaid
 flowchart TD
-    A[Context: input type + duration + platform] --> B[Contextual Bandit API]
-    B --> C{Warm model available?}
-    C -->|No / cold start| D[Use historical baseline prior]
+    A["Context: input type + duration + platform"] --> B[Contextual Bandit API]
+    B --> C{"Warm model available?"}
+    C -->|"No / cold start"| D[Use historical baseline prior]
     C -->|Yes| E[Use Vowpal Wabbit probabilities]
     D --> F[Rank output types]
     E --> F
     F --> G[Return recommendations to frontend]
-    G --> H[User selects / rates recommendation]
-    H --> I[/api/recommend/feedback]
-    I --> J[Log reward and update VW model]
+    G --> H["User selects / rates recommendation"]
+    H --> I["/api/recommend/feedback"]
+    I --> J["Log reward and update VW model"]
 ```
 
 Design logic:
@@ -402,11 +403,11 @@ The chatbot is an always-on natural-language analytics layer that can:
 ```mermaid
 flowchart TD
     A[User asks question in chatbot] --> B[Frontend sends SSE request]
-    B --> C[/chat/stream]
+    B --> C["/chat/stream"]
     C --> D[Run orchestrator]
     D --> E[Stream node progress to UI]
     E --> F[Return final answer]
-    F --> G[Show summary, SQL, table/chart, insights, follow-ups]
+    F --> G["Show summary, SQL, table/chart, insights, follow-ups"]
 ```
 
 The chatbot UI also shows:
@@ -740,23 +741,19 @@ pip install chromadb
 
 ### Environment variables
 
-Create a `.env` file in the project root or backend directory with at least:
+Create a `.env` file in `backend/` with at least:
 
 ```env
 OPENAI_API_KEY=your_key_here
 ```
 
-Optional frontend variable:
+Create a `.env` file in `frontend/` with:
 
 ```env
-REACT_APP_CHAT_API=http://127.0.0.1:8000
+REACT_APP_API_URL=http://localhost:8000
 ```
 
-Important note:
-
-- the chatbot can read `REACT_APP_CHAT_API`
-- several dashboard pages are currently hardcoded to `http://localhost:8000`
-- so during local development the backend should run on port `8000`
+All frontend API calls read from `REACT_APP_API_URL`. For production, set this to your deployed backend URL (e.g., your Cloud Run URL).
 
 ## Build the Warehouse
 
@@ -857,7 +854,46 @@ python backend/RAG/knowledge_base.py --verify
 python backend/RAG/load_jargon_data.py
 ```
 
-## 20. Why This Solution Is Strong for the Case
+## 20. Deployment
+
+### Backend — Docker + Google Cloud Run
+
+The backend is containerized and deployed to GCP Cloud Run.
+
+```bash
+# Build the Docker image (use linux/amd64 for Cloud Run)
+docker build --platform linux/amd64 -t gcdata-backend .
+
+# Tag and push to Artifact Registry
+docker tag gcdata-backend us-central1-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO/gcdata-backend:latest
+docker push us-central1-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO/gcdata-backend:latest
+```
+
+Then deploy via the Cloud Run console or CLI:
+
+```bash
+gcloud run deploy gcdata-backend \
+  --image us-central1-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO/gcdata-backend:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --update-env-vars="OPENAI_API_KEY=your_key_here"
+```
+
+### Frontend — Vercel
+
+The React frontend is deployed on Vercel.
+
+1. Import the GitHub repository on [vercel.com](https://vercel.com).
+2. Set **Root Directory** to `frontend`.
+3. Set **Framework Preset** to `Create React App`.
+4. Add environment variables:
+   - `REACT_APP_API_URL` = your Cloud Run backend URL
+   - `CI` = `false`
+5. Deploy.
+
+## 21. Why This Solution Is Strong for the Case
 
 This solution directly addresses the Frammer AI brief by combining:
 
@@ -870,18 +906,6 @@ This solution directly addresses the Frammer AI brief by combining:
 - video-level traceability
 - natural-language analytics with RAG and explainable routing
 - a scalable star-schema foundation for future metrics and dimensions
-
-## 21. Future Extensions
-
-Natural next enhancements for the same architecture:
-
-- billing and billable/non-billable analytics
-- SLA and processing-time monitoring
-- error/retry/failure dashboards
-- richer client and workspace hierarchy
-- authentication and role-based views
-- automated insight summaries and weekly digests
-- live feedback loops from publishing outcomes into recommendations
 
 ---
 
