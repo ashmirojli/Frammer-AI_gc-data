@@ -285,14 +285,14 @@ Supported metrics include:
 
 ```mermaid
 flowchart TD
-    A[User selects dim1, dim2, metric] --> B[/api/anomaly/matrix]
+    A["User selects dim1, dim2, metric"] --> B["/api/anomaly/matrix"]
     B --> C[Load pre-aggregated or derived fact source]
     C --> D[Build cross-tab matrix]
-    D --> E[Compute row totals, column totals, grand total]
+    D --> E["Compute row totals, column totals, grand total"]
     E --> F[Calculate conversion metrics]
     F --> G[Detect outliers with z-scores]
-    G --> H[Return matrix, names, alerts, anomalies]
-    H --> I[Frontend heatmap / matrix view]
+    G --> H["Return matrix, names, alerts, anomalies"]
+    H --> I["Frontend heatmap / matrix view"]
 ```
 
 Implementation notes:
