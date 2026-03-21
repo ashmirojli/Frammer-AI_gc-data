@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const TAB2_API = 'http://localhost:8000/api/tab2';
+const TAB2_API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/tab2`;
 const COLORS = ['#ff4d6d', '#00c864', '#f97316', '#3b82f6', '#fb7185', '#ec4899', '#2dd4bf', '#fbbf24'];
 
 const fmt = (n) => n != null ? Number(n).toLocaleString() : '—';

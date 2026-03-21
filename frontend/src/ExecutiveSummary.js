@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const TAB4_API = 'http://localhost:8000/api/tab4';
+const TAB4_API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/tab4`;
 const OUTPUT_COLORS = ['#ff4d6d88', '#ff4d6dbb', '#ff4d6d', '#8b1e33', '#555', '#a3a3a3'];
 const INPUT_COLORS = ['#ff4d6d', '#ff4d6dbb', '#ff4d6d88', '#8b1e33', '#555', '#a3a3a3'];
 const LATENCY_COLORS = ['#ff4d6d88', '#c084fc88', '#2dd4bf88', '#818cf888', '#f472b688', '#fbbf2488', '#34d39988'];
@@ -414,7 +414,7 @@ const DistributionPlatformHealthContent = ({ data }) => {
   );
 };
 
-const REC_API = 'http://localhost:8000/api/recommend';
+const REC_API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/recommend`;
 
 const RecommendationsContent = () => {
   const [inputType, setInputType] = useState(1);

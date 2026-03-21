@@ -1,0 +1,43 @@
+# ── Git ──────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Frontend (not needed for backend deployment) ────────────────────────────
+frontend/
+node_modules/
+
+# ── Raw dataset (not needed — we use StarSchemaDB instead) ──────────────────
+Dataset/
+
+# ── Python cache & virtual envs ─────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+venv/
+.venv/
+env/
+
+# ── Environment & secret files (passed at runtime, not baked in) ────────────
+.env
+.env.*
+*.env
+
+# ── IDE & OS files ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+README.md
+*.md
+.agents/
+.agent/

@@ -9,7 +9,7 @@ import {
 import { Link } from 'react-router-dom';
 import MultidimensionAnomaly from './MultidimensionAnomaly';
 
-const TAB3_API = 'http://localhost:8000/api/tab3';
+const TAB3_API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/tab3`;
 
 const AnalyticsDashboard = () => {
   const [activeNav, setActiveNav] = useState('User Analysis');

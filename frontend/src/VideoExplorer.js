@@ -10,7 +10,7 @@ import {
   PieChart as RePieChart, Pie, Cell
 } from 'recharts';
 
-const TAB5_API = 'http://localhost:8000/api/tab5';
+const TAB5_API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/tab5`;
 const PLAT_COLORS = ['#8b0000', '#ff4d6d', '#ff4d6dbb', '#ff4d6d88', '#ff4d6d55'];
 
 const ALL_COLUMNS = [

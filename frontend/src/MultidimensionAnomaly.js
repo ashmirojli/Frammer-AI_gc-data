@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, Star, Activity, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react';
 
-const API = 'http://localhost:8000/api/anomaly';
+const API = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/anomaly`;
 
 const fmtNum = (n) => (n == null ? '0' : Number(n).toLocaleString());
 

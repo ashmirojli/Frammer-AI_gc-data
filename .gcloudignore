@@ -1,0 +1,22 @@
+# ── Start with default .dockerignore exclusions ─────────────────────────────
+.git
+frontend/
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+venv/
+.venv/
+env/
+.env
+.env.*
+*.env
+.vscode/
+.idea/
+.DS_Store
+
+# ── IMPORTANT: Do NOT ignore StarSchemaDB CSVs! ──────────────────────────────
+# We do not include *.csv here like .gitignore does, because the backend NEEDS
+# StarSchemaDB to be uploaded to Cloud Build to bake frammer.db correctly!

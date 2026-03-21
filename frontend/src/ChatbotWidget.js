@@ -34,7 +34,7 @@ import {
 } from 'recharts';
 
 const CHAT_API_URL =
-  process.env.REACT_APP_CHAT_API || 'http://127.0.0.1:8000';
+  process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const CHART_COLORS = [
   '#ff6b6b', '#2ed573', '#1e90ff', '#ffa502', '#a29bfe',
