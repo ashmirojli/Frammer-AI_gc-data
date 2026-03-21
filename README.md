@@ -318,10 +318,10 @@ The anomaly layer identifies unusually high or low intersections and also cluste
 flowchart TD
     A[Load StarSchemaDB facts and dimensions] --> B[Build enriched analysis tables]
     B --> C[Generate matrix or breakdown]
-    C --> D[Compute row, column, and global distributions]
+    C --> D["Compute row, column, and global distributions"]
     D --> E[Calculate z-scores]
-    E --> F[Tag exceptional, high, low, critical-low cells]
-    B --> G[Create feature vectors for users/channels]
+    E --> F["Tag exceptional, high, low, critical-low cells"]
+    B --> G["Create feature vectors for users/channels"]
     G --> H[Standardize features]
     H --> I[Run DBSCAN]
     I --> J[Assign clusters and outliers]
