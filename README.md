@@ -7,7 +7,7 @@ GC Data Analytics competition at IIT Kharagpur.
 Original repo: [swaralipi04/GCData_Analytics](https://github.com/swaralipi04/GCData_Analytics)
 
 #### My specific contributions:
-- **KPI Design (Tab 2 — Usage & Trends):** Defined and designed key 
+- **KPI Design:** Defined and designed key 
   performance indicators including Editorial Yield, Content Expansion 
   Factor, Metadata Hygiene Radar, Monthly Duration Footprint, and 
   Monthly Channel Productivity Index
