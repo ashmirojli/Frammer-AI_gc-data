@@ -1,5 +1,48 @@
 # Frammer AI Product Usage Analytics Dashboard
+> **General Championship (GC) | IIT Kharagpur | Feb–Mar 2026**
 
+This is a personal portfolio copy of a hall team project built for the 
+GC Data Analytics competition at IIT Kharagpur.
+
+Original repo: [swaralipi04/GCData_Analytics](https://github.com/swaralipi04/GCData_Analytics)
+
+**My specific contributions:**
+- **KPI Design (Tab 2 — Usage & Trends):** Defined and designed key 
+  performance indicators including Editorial Yield, Content Expansion 
+  Factor, Metadata Hygiene Radar, Monthly Duration Footprint, and 
+  Monthly Channel Productivity Index
+- **Figma Dashboard Design:** Designed the UI/UX wireframes for the 
+  analytics dashboard
+- **Documentation & Report:** Led PPT and report creation, particularly 
+  the Recommendation Engine section
+
+## 📚 What I Learned
+Working closely with seniors and actively participating across the project:
+
+- **KPI Design:** How to translate business problems into measurable 
+  metrics, funnel analysis, and detecting pipeline bottlenecks
+- **Dashboard Design:** Designing for non-technical users, data 
+  storytelling, and information hierarchy in Figma
+- **Recommendation Systems:** How contextual bandits (Vowpal Wabbit) 
+  work, explore-exploit tradeoff (ε=0.1), cold start problem, and 
+  Laplace smoothing
+- **LLM Pipelines:** How NL-to-SQL works using LangGraph multi-agent 
+  architecture, RAG via ChromaDB, and parallel SQL generation strategies
+- **Data Engineering:** Star schema design, ETL pipelines, and why 
+  denormalized schemas improve analytical query performance
+- **Anomaly Detection:** DBSCAN clustering and Z-score based anomaly 
+  flagging for user behavior analysis
+- **Backend & Deployment:** FastAPI structure, Docker containerization, 
+  and Google Cloud Run deployment basics
+
+## 👥 Team
+**Captain:** Swaralipi Das | **Vice Captains:** Spriha Dubey, Nyasa
+
+**Team:** Sneha, Vaishnavi, Niddhi, Reshmita and others
+
+---
+
+## About the Project
 End-to-end analytics solution built for **General Championship - Data Analytics (2026)** in response to the Frammer AI problem statement: designing a scalable, modular, insight-ready dashboard for media operations, with multi-dimensional analysis, actionable recommendations, anomaly detection, and a natural-language analytics assistant.
 
 ## 1. Problem Statement Alignment
