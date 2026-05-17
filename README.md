@@ -6,7 +6,7 @@ GC Data Analytics competition at IIT Kharagpur.
 
 Original repo: [swaralipi04/GCData_Analytics](https://github.com/swaralipi04/GCData_Analytics)
 
-**My specific contributions:**
+#### My specific contributions:
 - **KPI Design (Tab 2 — Usage & Trends):** Defined and designed key 
   performance indicators including Editorial Yield, Content Expansion 
   Factor, Metadata Hygiene Radar, Monthly Duration Footprint, and 
@@ -16,7 +16,7 @@ Original repo: [swaralipi04/GCData_Analytics](https://github.com/swaralipi04/GCD
 - **Documentation & Report:** Led PPT and report creation, particularly 
   the Recommendation Engine section
 
-## 📚 What I Learned
+#### What I Learned:
 Working closely with seniors and actively participating across the project:
 
 - **KPI Design:** How to translate business problems into measurable 
@@ -35,7 +35,7 @@ Working closely with seniors and actively participating across the project:
 - **Backend & Deployment:** FastAPI structure, Docker containerization, 
   and Google Cloud Run deployment basics
 
-## 👥 Team
+#### Team:
 **Captain:** Swaralipi Das | **Vice Captains:** Spriha Dubey, Nyasa
 
 **Team:** Sneha, Vaishnavi, Niddhi, Reshmita and others
